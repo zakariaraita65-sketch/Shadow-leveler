@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, useAnimation } from "motion/react";
 import { Shield, LayoutDashboard, Swords, Sparkles, Clock, ShoppingBag, Fingerprint } from "lucide-react";
-import { signInWithFingerprint } from "../firebase";
+import { signInWithFingerprint, signInWithGoogle } from "../firebase";
 
 interface LoginProps {
   onLoginProgress: (progress: boolean) => void;
@@ -21,10 +21,22 @@ export default function Login({ onLoginProgress }: LoginProps) {
     } catch (err: any) {
       console.error("Login failed", err);
       if (err?.code === 'auth/operation-not-allowed') {
-        setError("AUTH_REJECTED: Anonymous sign-in is disabled. Please enable 'Anonymous' in your Firebase Authentication Console to use the fingerprint scanner.");
+        setError("AUTH_REJECTED: Please enable 'Anonymous' Sign-In Provider in your Firebase Console (Authentication > Sign-in method) to use the Biometric Scanner, or use Google Login below.");
       } else {
         setError(err.message || "Authentication failed.");
       }
+      onLoginProgress(false);
+    }
+  };
+
+  const handleGoogleLogin = async () => {
+    try {
+      setError(null);
+      onLoginProgress(true);
+      await signInWithGoogle();
+    } catch (err: any) {
+      console.error("Google Login failed", err);
+      setError(err.message || "Google Authentication failed.");
       onLoginProgress(false);
     }
   };
@@ -120,6 +132,13 @@ export default function Login({ onLoginProgress }: LoginProps) {
           <p className="text-xs font-mono text-white/50 uppercase tracking-[0.3em] h-4">
              {isPressing ? "SCANNING BIOMETRICS..." : "HOLD TO AUTHENTICATE"}
           </p>
+
+          <button 
+             onClick={handleGoogleLogin}
+             className="mt-4 px-6 py-3 bg-white/5 hover:bg-white/10 system-border rounded-lg text-xs font-mono tracking-widest text-white/80 transition-all uppercase flex items-center gap-2"
+          >
+             Use Standard Login (Google)
+          </button>
 
           {error && (
             <motion.div 

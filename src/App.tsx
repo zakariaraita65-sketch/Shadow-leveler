@@ -40,6 +40,7 @@ import QuestSection from './components/QuestSection';
 import FocusTimer from './components/FocusTimer';
 import SkillTree from './components/SkillTree';
 import StoreSection from './components/StoreSection';
+import RankSection from './components/RankSection';
 import QuotesSection from './components/QuotesSection';
 import SystemMessage from './components/SystemMessage';
 import AddQuestModal from './components/AddQuestModal';
@@ -59,7 +60,7 @@ export default function App() {
   
   const [notifications, setNotifications] = useState<{ id: number; text: string; type?: any }[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'quests' | 'skills' | 'timer' | 'store'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'quests' | 'skills' | 'timer' | 'store' | 'ranks'>('dashboard');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   // --- AUTH LISTENERS ---
@@ -442,7 +443,7 @@ export default function App() {
               <NavItem active={activeTab === 'skills'} icon={<Sparkles size={20}/>} label="Skill Matrix" onClick={() => setActiveTab('skills')} />
               <NavItem active={activeTab === 'timer'} icon={<Clock size={18}/>} label="Focus Chamber" onClick={() => setActiveTab('timer')} />
               <NavItem active={activeTab === 'store'} icon={<ShoppingBag size={20}/>} label="System Store" onClick={() => setActiveTab('store')} />
-              <NavItem active={false} icon={<BarChart3 size={20}/>} label="Player Stats" onClick={() => notify('FEATURE LOCKED: REACH LEVEL 10', 'warning')} />
+              <NavItem active={activeTab === 'ranks'} icon={<BarChart3 size={20}/>} label="Rank & Leaderboard" onClick={() => setActiveTab('ranks')} />
             </div>
 
             <div className="pt-8 mt-auto flex flex-col gap-4 border-t border-white/10">
@@ -526,6 +527,10 @@ export default function App() {
 
               {activeTab === 'store' && (
                 <StoreSection gold={stats.gold} onBuy={handleBuyItem} />
+              )}
+
+              {activeTab === 'ranks' && (
+                <RankSection level={stats.level} rank={stats.rank} exp={stats.exp} maxExp={stats.maxExp} />
               )}
 
               {activeTab === 'timer' && (
