@@ -1,0 +1,89 @@
+import { Rank } from "./types";
+
+export const RANK_ORDER = [
+  Rank.E,
+  Rank.D,
+  Rank.C,
+  Rank.B,
+  Rank.A,
+  Rank.S,
+  Rank.SS,
+  Rank.SSS
+];
+
+export const RANK_TITLES: Record<string, string> = {
+  [Rank.E]: "NOVICE HUNTER",
+  [Rank.D]: "HUNTER",
+  [Rank.C]: "VETERAN HUNTER",
+  [Rank.B]: "ELITE HUNTER",
+  [Rank.A]: "MASTER HUNTER",
+  [Rank.S]: "MONARCH",
+  [Rank.SS]: "NATIONAL LEVEL",
+  [Rank.SSS]: "SHADOW MONARCH"
+};
+
+export const EXP_PER_LEVEL = 1000;
+
+export const INITIAL_STATS = {
+  rank: Rank.E,
+  level: 1,
+  exp: 0,
+  maxExp: 1000,
+  gold: 500, // Starting gold
+  streak: 0,
+  lastActive: new Date().toISOString(),
+  totalFocusTime: 0,
+  completedQuests: 0
+};
+
+export const STORE_ITEMS = [
+  { 
+    id: "recovery_potion", 
+    name: "Full Recovery Potion", 
+    description: "Restores a lost streak and heals penalty damage to your status.",
+    cost: 1200,
+    icon: "FlaskConical",
+    type: "consumable"
+  },
+  { 
+    id: "exp_scroll", 
+    name: "EXP Growth Scroll", 
+    description: "Multiplies EXP gained from the next 3 missions by 1.5x.",
+    cost: 800,
+    icon: "Scroll",
+    type: "buff"
+  },
+  { 
+    id: "mana_elixir", 
+    name: "Focus Mana Elixir", 
+    description: "Unlocks advanced focus chamber resonance (+20% Focus Time Efficiency).",
+    cost: 2500,
+    icon: "Zap",
+    type: "buff"
+  },
+  { 
+    id: "system_key", 
+    name: "Dungeon Key", 
+    description: "Access to 'Hard Mode' main quests with immense rewards.",
+    cost: 5000,
+    icon: "Key",
+    type: "key"
+  }
+];
+
+export const SCIENTIFIC_QUOTES = [
+  { text: "Imagination is more important than knowledge. Knowledge is limited. Imagination encircles the world.", author: "Albert Einstein" },
+  { text: "Nothing in life is to be feared, it is only to be understood. Now is the time to understand more, so that we may fear less.", author: "Marie Curie" },
+  { text: "Science is a way of thinking much more than it is a body of knowledge.", author: "Carl Sagan" },
+  { text: "Somewhere, something incredible is waiting to be known.", author: "Carl Sagan" },
+  { text: "The good thing about science is that it's true whether or not you believe in it.", author: "Neil deGrasse Tyson" },
+  { text: "Success is not final, failure is not fatal: it is the courage to continue that counts.", author: "Winston Churchill" },
+  { text: "The only way to do great work is to love what you do.", author: "Steve Jobs" }
+];
+
+export const SUBJECTS = [
+  { id: "hg", name: "HG (History/Geog)", icon: "Globe" },
+  { id: "french", name: "French", icon: "Languages" },
+  { id: "arabic", name: "Arabic", icon: "Languages" },
+  { id: "islamic", name: "Islamic Studies", icon: "BookOpen" }
+];

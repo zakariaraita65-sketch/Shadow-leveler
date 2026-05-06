@@ -1,0 +1,102 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 0. Default Deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- HELPERS ---
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isEmailVerified() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // --- VALIDATION HELPERS ---
+    
+    function isValidUserStats(data) {
+      return data.keys().hasAll(['rank', 'level', 'exp', 'maxExp', 'gold', 'streak', 'lastActive'])
+        && data.rank is string
+        && data.level is int
+        && data.exp is int
+        && data.maxExp is int
+        && data.gold is int
+        && data.streak is int
+        && data.lastActive is string
+        && (!data.keys().contains('gender') || data.gender in ['male', 'female'])
+        && (!data.keys().contains('age') || data.age is int)
+        && (!data.keys().contains('penaltyActive') || data.penaltyActive is bool)
+        && (!data.keys().contains('penaltyReason') || data.penaltyReason is string)
+        && (!data.keys().contains('penaltyDeadline') || data.penaltyDeadline is string);
+    }
+
+    function isValidQuest(data, userId) {
+      return data.userId == userId
+        && data.keys().hasAll(['userId', 'title', 'expReward', 'type', 'completed', 'category', 'dueDate'])
+        && data.title is string && data.title.size() <= 500
+        && data.expReward is int
+        && data.type in ['daily', 'main']
+        && data.completed is bool
+        && data.dueDate is string
+        && data.category is string
+        && (!data.keys().contains('description') || data.description is string);
+    }
+
+    function isValidSkill(data) {
+      return data.keys().hasAll(['level', 'exp', 'maxExp'])
+        && data.level is int
+        && data.exp is int
+        && data.maxExp is int;
+    }
+
+    // --- MATCH BLOCKS ---
+
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      allow create: if isOwner(userId) && isValidUserStats(incoming());
+      allow update: if isOwner(userId) && isValidUserStats(incoming()) && (
+        // Simple updates for now, restricting immutable fields would be better but let's stick to the flow
+        incoming().diff(existing()).affectedKeys().hasOnly([
+          'rank', 'level', 'exp', 'maxExp', 'gold', 'streak', 'lastActive', 
+          'totalFocusTime', 'completedQuests', 'displayName', 'photoURL'
+        ])
+      );
+
+      match /quests/{questId} {
+        allow list: if isOwner(userId) && resource.data.userId == request.auth.uid;
+        allow get: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidQuest(incoming(), userId) && isValidId(questId);
+        allow update: if isOwner(userId) && isValidQuest(incoming(), userId) && (
+          // Update can be either completing, or editing title
+          incoming().diff(existing()).affectedKeys().hasAny(['completed', 'title', 'category'])
+        );
+        allow delete: if isOwner(userId);
+      }
+
+      match /skills/{skillId} {
+        allow list: if isOwner(userId);
+        allow get: if isOwner(userId);
+        allow write: if isOwner(userId) && isValidSkill(incoming()) && isValidId(skillId);
+      }
+    }
+  }
+}
