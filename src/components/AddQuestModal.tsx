@@ -9,6 +9,12 @@ interface AddQuestModalProps {
 
 export default function AddQuestModal({ onClose, onAdd }: AddQuestModalProps) {
   const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [dueDate, setDueDate] = useState(() => {
+    const d = new Date();
+    d.setHours(d.getHours() + 2); // Default to 2 hours from now
+    return d.toISOString().slice(0, 16);
+  });
   const [type, setType] = useState<"daily" | "main">("daily");
   const [category, setCategory] = useState(SUBJECTS[0].id);
 
@@ -21,14 +27,28 @@ export default function AddQuestModal({ onClose, onAdd }: AddQuestModalProps) {
       return;
     }
 
-    onAdd({
+    let finalDueDate;
+    try {
+      if (!dueDate) throw new Error("Empty date");
+      finalDueDate = new Date(dueDate).toISOString();
+    } catch (err) {
+      const d = new Date();
+      d.setHours(d.getHours() + 2);
+      finalDueDate = d.toISOString();
+    }
+
+    const questPayload: any = {
       title: title.trim(),
       type,
       category,
       expReward: type === "daily" ? 150 : 500,
-      description: "",
-      dueDate: new Date().toISOString(),
-    });
+      dueDate: finalDueDate,
+    };
+    if (description.trim()) {
+      questPayload.description = description.trim();
+    }
+
+    onAdd(questPayload);
     onClose();
   };
 
@@ -44,12 +64,12 @@ export default function AddQuestModal({ onClose, onAdd }: AddQuestModalProps) {
          <div className="flex flex-col gap-6">
             <div>
                <span className="text-[10px] font-mono text-system-neon tracking-[0.3em] uppercase">Registrar</span>
-               <h2 className="text-2xl font-display font-bold italic tracking-tight">Add New Task</h2>
+               <h2 className="text-2xl font-display font-bold italic tracking-tight">Add New Mission</h2>
             </div>
 
             <form onSubmit={handleSubmit} className="flex flex-col gap-4">
                <div className="flex flex-col gap-2">
-                  <label className="text-[10px] font-mono text-white/40 uppercase">Task Directive</label>
+                  <label className="text-[10px] font-mono text-white/40 uppercase">Mission Name</label>
                   <input
                      autoFocus
                      value={title}
@@ -63,6 +83,28 @@ export default function AddQuestModal({ onClose, onAdd }: AddQuestModalProps) {
                      placeholder="Study 3 Chapters of..."
                   />
                   {error && <span className="text-[10px] text-system-danger font-mono uppercase">Mission directive required</span>}
+               </div>
+
+               <div className="flex flex-col gap-2">
+                  <label className="text-[10px] font-mono text-white/40 uppercase">Details (Optional)</label>
+                  <textarea
+                     value={description}
+                     onChange={(e) => setDescription(e.target.value)}
+                     className="bg-white/5 border border-white/10 rounded-md px-4 py-3 outline-none focus:border-system-neon/50 text-sm transition-all min-h-[80px] resize-none"
+                     placeholder="Specific requirements for this mission..."
+                  />
+               </div>
+
+               <div className="flex gap-4">
+                  <div className="flex flex-col flex-1 gap-2">
+                     <label className="text-[10px] font-mono text-white/40 uppercase">Time Limit</label>
+                     <input
+                        type="datetime-local"
+                        value={dueDate}
+                        onChange={(e) => setDueDate(e.target.value)}
+                        className="bg-white/5 border border-white/10 rounded-md px-3 py-2 outline-none focus:border-system-neon/50 text-sm"
+                     />
+                  </div>
                </div>
 
                <div className="flex gap-4">

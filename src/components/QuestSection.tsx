@@ -20,7 +20,7 @@ export default function QuestSection({ quests = [], onToggle, onDelete, onAdd }:
       <div className="flex justify-between items-center bg-white/5 p-4 rounded-lg border border-white/5">
         <div className="flex flex-col">
           <h2 className="text-xl font-display font-bold italic tracking-tight flex items-center gap-2">
-            <Swords className="text-system-neon" size={20} /> MISSION LOG
+            <Swords className="text-system-neon" size={20} /> MISSIONS
           </h2>
           <span className="text-[9px] font-mono text-white/30 uppercase tracking-widest">Tracking mission objectives in real-time</span>
         </div>
@@ -28,7 +28,7 @@ export default function QuestSection({ quests = [], onToggle, onDelete, onAdd }:
           onClick={onAdd}
           className="flex items-center gap-2 text-[10px] font-bold bg-system-neon text-black px-4 py-2 rounded uppercase hover:bg-white transition-all transform active:scale-95"
         >
-          <Plus size={14} /> Add Directive
+          <Plus size={14} /> Add Mission
         </button>
       </div>
 
@@ -128,13 +128,25 @@ function QuestCard({ quest, onToggle, onDelete }: QuestCardProps) {
             </button>
           )}
         </div>
-        <div className="flex items-center gap-3 text-[10px] font-mono text-white/40 mt-1">
+        
+        {quest.description && (
+          <p className="text-xs text-white/50 mt-1 mb-1 line-clamp-2">
+            {quest.description}
+          </p>
+        )}
+
+        <div className="flex items-center gap-3 text-[10px] font-mono text-white/40 mt-1 flex-wrap">
           <span className="flex items-center gap-1 uppercase">
             <ScrollText size={10} /> {quest.category}
           </span>
           <span className="flex items-center gap-1 text-system-neon uppercase">
              +{quest.expReward} EXP
           </span>
+          {quest.dueDate && (
+             <span className="flex items-center gap-1 text-white/50 uppercase ml-auto">
+               <Calendar size={10} /> {new Date(quest.dueDate).toLocaleDateString()} {new Date(quest.dueDate).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+             </span>
+          )}
         </div>
       </div>
 

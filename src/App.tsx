@@ -28,7 +28,9 @@ import {
   collection, 
   addDoc,
   deleteDoc,
-  getDoc
+  getDoc,
+  query,
+  where
 } from 'firebase/firestore';
 import { auth, db, OperationType, handleFirestoreError } from './firebase';
 import { speak } from './lib/voice';
@@ -121,7 +123,7 @@ export default function App() {
     }, (err) => handleFirestoreError(err, OperationType.GET, `users/${user.uid}`));
 
     // Listen for quests
-    const questsUnsub = onSnapshot(collection(db, 'users', user.uid, 'quests'), (snap) => {
+    const questsUnsub = onSnapshot(query(collection(db, 'users', user.uid, 'quests'), where('userId', '==', user.uid)), (snap) => {
       const q = snap.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Quest[];
       console.log(`[DATA] Loaded ${q.length} quests for user ${user.uid}`);
       // Sort by dueDate descending, handle missing/invalid dates
@@ -293,16 +295,17 @@ export default function App() {
       ...qData,
       userId: user.uid,
       completed: false,
-      description: qData.description || "",
-      dueDate: qData.dueDate || new Date().toISOString(),
     };
+    if (!newQuest.dueDate) {
+        newQuest.dueDate = new Date().toISOString();
+    }
     try {
       const docRef = await addDoc(collection(db, 'users', user.uid, 'quests'), newQuest);
       console.log("[SUCCESS] Quest added with ID:", docRef.id);
       notify('QUEST ACCEPTED', 'info');
       speak('QUEST ACCEPTED. GOOD LUCK HUNTER.');
-    } catch (err) { 
-      notify('QUEST REGISTRATION FAILED', 'danger');
+    } catch (err: any) { 
+      notify('QUEST REGISTRATION FAILED: ' + (err.message || "Unknown error"), 'danger');
       handleFirestoreError(err, OperationType.CREATE, `users/${user.uid}/quests`); 
     }
   };
@@ -435,7 +438,7 @@ export default function App() {
 
             <div className="flex flex-col gap-2 flex-1">
               <NavItem active={activeTab === 'dashboard'} icon={<LayoutDashboard size={20}/>} label="Dashboard" onClick={() => setActiveTab('dashboard')} />
-              <NavItem active={activeTab === 'quests'} icon={<Swords size={20}/>} label="Quest Board" onClick={() => setActiveTab('quests')} />
+              <NavItem active={activeTab === 'quests'} icon={<Swords size={20}/>} label="Missions" onClick={() => setActiveTab('quests')} />
               <NavItem active={activeTab === 'skills'} icon={<Sparkles size={20}/>} label="Skill Matrix" onClick={() => setActiveTab('skills')} />
               <NavItem active={activeTab === 'timer'} icon={<Clock size={18}/>} label="Focus Chamber" onClick={() => setActiveTab('timer')} />
               <NavItem active={activeTab === 'store'} icon={<ShoppingBag size={20}/>} label="System Store" onClick={() => setActiveTab('store')} />

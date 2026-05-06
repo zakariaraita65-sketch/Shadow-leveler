@@ -79,8 +79,8 @@ export default function UserHUD({ stats, rankIndex, userId, questCount = 0 }: Us
 
       {/* MINI STATS */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-2 relative z-10">
-        <StatItem icon={<TrendingUp size={14} />} label="STREAK" value={`${streak}D`} />
-        <StatItem icon={<Zap size={14} />} label="FOCUS" value={`${focusTime}M`} />
+        <StatItem icon={<TrendingUp size={14} />} label="STREAK" value={`${streak} DAYS`} />
+        <StatItem icon={<Zap size={14} />} label="FOCUS" value={`${focusTime} MIN`} />
         <StatItem icon={<Award size={14} />} label="ACTIVE MISSIONS" value={questCount} />
         <StatItem icon={<Coins size={14} />} label="GOLD" value={`${gold}`} color="text-yellow-400" />
       </div>
