@@ -42,11 +42,11 @@ service cloud.firestore {
         && data.gold is number
         && data.streak is number
         && data.lastActive is string
-        && (!data.keys().contains('gender') || data.gender in ['male', 'female'])
-        && (!data.keys().contains('age') || data.age is number)
-        && (!data.keys().contains('penaltyActive') || data.penaltyActive is bool)
-        && (!data.keys().contains('penaltyReason') || data.penaltyReason is string)
-        && (!data.keys().contains('penaltyDeadline') || data.penaltyDeadline is string);
+        && (!('gender' in data) || data.gender == 'male' || data.gender == 'female')
+        && (!('age' in data) || data.age is number)
+        && (!('penaltyActive' in data) || data.penaltyActive is bool)
+        && (!('penaltyReason' in data) || data.penaltyReason is string)
+        && (!('penaltyDeadline' in data) || data.penaltyDeadline is string);
     }
 
     function isValidQuest(data, userId) {
@@ -54,11 +54,11 @@ service cloud.firestore {
         && data.keys().hasAll(['userId', 'title', 'expReward', 'type', 'completed', 'category', 'dueDate'])
         && data.title is string && data.title.size() <= 500
         && data.expReward is number
-        && data.type in ['daily', 'main']
+        && (data.type == 'daily' || data.type == 'main')
         && data.completed is bool
         && data.dueDate is string
         && data.category is string
-        && (!data.keys().contains('description') || data.description is string);
+        && (!('description' in data) || data.description is string);
     }
 
     function isValidSkill(data) {
