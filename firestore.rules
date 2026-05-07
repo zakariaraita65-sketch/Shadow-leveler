@@ -58,7 +58,10 @@ service cloud.firestore {
         && data.completed is bool
         && data.dueDate is string
         && data.category is string
-        && (!('description' in data) || data.description is string);
+        && (!('description' in data) || data.description is string)
+        && (!('duration' in data) || data.duration is number)
+        && (!('status' in data) || data.status in ['pending', 'active', 'completed', 'failed'])
+        && (!('startedAt' in data) || data.startedAt is string);
     }
 
     function isValidSkill(data) {
@@ -87,7 +90,7 @@ service cloud.firestore {
         allow create: if isOwner(userId) && isValidQuest(incoming(), userId) && isValidId(questId);
         allow update: if isOwner(userId) && isValidQuest(incoming(), userId) && (
           // Update can be either completing, or editing title
-          incoming().diff(existing()).affectedKeys().hasAny(['completed', 'title', 'category'])
+          incoming().diff(existing()).affectedKeys().hasAny(['completed', 'title', 'category', 'status', 'startedAt'])
         );
         allow delete: if isOwner(userId);
       }

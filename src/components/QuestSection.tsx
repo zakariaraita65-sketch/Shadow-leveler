@@ -1,5 +1,6 @@
+import React from "react";
 import { motion } from "motion/react";
-import { Plus, Check, Trash2, Calendar, Swords, ScrollText, Volume2 } from "lucide-react";
+import { Plus, Check, Trash2, Calendar, Swords, ScrollText, Volume2, Clock } from "lucide-react";
 import { Quest } from "../types";
 import { speak } from "../lib/voice";
 
@@ -8,9 +9,11 @@ interface QuestSectionProps {
   onToggle: (id: string) => void;
   onDelete: (id: string) => void;
   onAdd: () => void;
+  onStart: (id: string) => void;
+  onFail: (id: string, title: string) => void;
 }
 
-export default function QuestSection({ quests = [], onToggle, onDelete, onAdd }: QuestSectionProps) {
+export default function QuestSection({ quests = [], onToggle, onDelete, onAdd, onStart, onFail }: QuestSectionProps) {
   console.log(`[RENDER] QuestSection received ${quests?.length || 0} quests`);
   const dailyQuests = (quests || []).filter(q => q.type === "daily" || !q.type);
   const mainQuests = (quests || []).filter(q => q.type === "main");
@@ -24,12 +27,29 @@ export default function QuestSection({ quests = [], onToggle, onDelete, onAdd }:
           </h2>
           <span className="text-[9px] font-mono text-white/30 uppercase tracking-widest">Tracking mission objectives in real-time</span>
         </div>
-        <button
-          onClick={onAdd}
-          className="flex items-center gap-2 text-[10px] font-bold bg-system-neon text-black px-4 py-2 rounded uppercase hover:bg-white transition-all transform active:scale-95"
-        >
-          <Plus size={14} /> Add Mission
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => {
+              const pendingQuests = quests.filter(q => q.status === 'pending');
+              if (pendingQuests.length > 0) {
+                const randomQuest = pendingQuests[Math.floor(Math.random() * pendingQuests.length)];
+                onStart(randomQuest.id);
+                speak(`SYSTEM HAS CHOSEN: ${randomQuest.title}`);
+              } else {
+                speak("NO PENDING MISSIONS AVAILABLE.");
+              }
+            }}
+            className="flex items-center gap-2 text-[10px] font-bold bg-white/10 text-white px-4 py-2 rounded uppercase hover:bg-white/20 transition-all transform active:scale-95"
+          >
+            Auto Assign
+          </button>
+          <button
+            onClick={onAdd}
+            className="flex items-center gap-2 text-[10px] font-bold bg-system-neon text-black px-4 py-2 rounded uppercase hover:bg-white transition-all transform active:scale-95"
+          >
+            <Plus size={14} /> Add Mission
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -51,6 +71,8 @@ export default function QuestSection({ quests = [], onToggle, onDelete, onAdd }:
                   quest={quest} 
                   onToggle={() => onToggle(quest.id)} 
                   onDelete={() => onDelete(quest.id)} 
+                  onStart={() => onStart(quest.id)}
+                  onFail={() => onFail(quest.id, quest.title)}
                 />
               ))
             )}
@@ -75,6 +97,8 @@ export default function QuestSection({ quests = [], onToggle, onDelete, onAdd }:
                   quest={quest} 
                   onToggle={() => onToggle(quest.id)} 
                   onDelete={() => onDelete(quest.id)} 
+                  onStart={() => onStart(quest.id)}
+                  onFail={() => onFail(quest.id, quest.title)}
                 />
               ))
             )}
@@ -89,10 +113,43 @@ interface QuestCardProps {
   quest: Quest;
   onToggle: () => void;
   onDelete: () => void;
+  onStart: () => void;
+  onFail: () => void;
   key?: any;
 }
 
-function QuestCard({ quest, onToggle, onDelete }: QuestCardProps) {
+function QuestCard({ quest, onToggle, onDelete, onStart, onFail }: QuestCardProps) {
+  const [timeLeft, setTimeLeft] = React.useState<number | null>(null);
+
+  React.useEffect(() => {
+    if (quest.status === 'active' && quest.startedAt && quest.duration) {
+      const endTime = new Date(quest.startedAt).getTime() + quest.duration * 60 * 1000;
+      
+      const updateTimer = () => {
+        const now = Date.now();
+        const remaining = Math.max(0, endTime - now);
+        setTimeLeft(remaining);
+
+        if (remaining <= 0) {
+          onFail();
+        }
+      };
+
+      updateTimer();
+      const interval = setInterval(updateTimer, 1000);
+      return () => clearInterval(interval);
+    } else {
+      setTimeLeft(null);
+    }
+  }, [quest.status, quest.startedAt, quest.duration, onFail]);
+
+  const formatTime = (ms: number) => {
+    const totalSeconds = Math.floor(ms / 1000);
+    const h = Math.floor(totalSeconds / 3600);
+    const m = Math.floor((totalSeconds % 3600) / 60);
+    const s = totalSeconds % 60;
+    return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+  };
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
@@ -142,10 +199,26 @@ function QuestCard({ quest, onToggle, onDelete }: QuestCardProps) {
           <span className="flex items-center gap-1 text-system-neon uppercase">
              +{quest.expReward} EXP
           </span>
-          {quest.dueDate && (
-             <span className="flex items-center gap-1 text-white/50 uppercase ml-auto">
-               <Calendar size={10} /> {new Date(quest.dueDate).toLocaleDateString()} {new Date(quest.dueDate).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-             </span>
+          {quest.status === 'failed' && (
+            <span className="flex items-center gap-1 text-system-danger uppercase font-bold ml-auto">
+               FAILED
+            </span>
+          )}
+          {quest.duration !== undefined && quest.status === 'pending' && (
+            <span className="flex items-center gap-1 text-white/50 uppercase ml-auto">
+              <Calendar size={10} /> {Math.floor(quest.duration / 60)}h {quest.duration % 60}m needed
+              <button 
+                onClick={onStart}
+                className="ml-2 px-2 py-1 bg-white/10 hover:bg-system-neon hover:text-black rounded transition-colors text-[9px] font-bold"
+              >
+                START NOW
+              </button>
+            </span>
+          )}
+          {quest.status === 'active' && timeLeft !== null && (
+            <span className="flex items-center gap-1 text-system-neon uppercase font-bold ml-auto animate-pulse">
+              <Clock size={10} /> {formatTime(timeLeft)}
+            </span>
           )}
         </div>
       </div>

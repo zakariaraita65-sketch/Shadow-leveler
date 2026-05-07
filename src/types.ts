@@ -17,8 +17,11 @@ export interface Quest {
   expReward: number;
   type: "daily" | "main";
   completed: boolean;
-  dueDate: string;
+  dueDate: string; // Deprecate or keep as optional/fallback? Let's keep it but it might be null/empty
   category: string;
+  duration?: number; // duration in minutes
+  status?: "pending" | "active" | "completed" | "failed";
+  startedAt?: string; // ISO string
 }
 
 export interface Skill {

@@ -10,11 +10,9 @@ interface AddQuestModalProps {
 export default function AddQuestModal({ onClose, onAdd }: AddQuestModalProps) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [dueDate, setDueDate] = useState(() => {
-    const d = new Date();
-    d.setHours(d.getHours() + 2); // Default to 2 hours from now
-    return d.toISOString().slice(0, 16);
-  });
+  const [hours, setHours] = useState(1);
+  const [minutes, setMinutes] = useState(0);
+
   const [type, setType] = useState<"daily" | "main">("daily");
   const [category, setCategory] = useState(SUBJECTS[0].id);
 
@@ -27,14 +25,9 @@ export default function AddQuestModal({ onClose, onAdd }: AddQuestModalProps) {
       return;
     }
 
-    let finalDueDate;
-    try {
-      if (!dueDate) throw new Error("Empty date");
-      finalDueDate = new Date(dueDate).toISOString();
-    } catch (err) {
-      const d = new Date();
-      d.setHours(d.getHours() + 2);
-      finalDueDate = d.toISOString();
+    const durationInMinutes = hours * 60 + minutes;
+    if (durationInMinutes <= 0) {
+       // fallback
     }
 
     const questPayload: any = {
@@ -42,7 +35,9 @@ export default function AddQuestModal({ onClose, onAdd }: AddQuestModalProps) {
       type,
       category,
       expReward: type === "daily" ? 150 : 500,
-      dueDate: finalDueDate,
+      dueDate: new Date().toISOString(), // Keeping default due date so schema passes
+      duration: durationInMinutes,
+      status: "pending"
     };
     if (description.trim()) {
       questPayload.description = description.trim();
@@ -97,11 +92,23 @@ export default function AddQuestModal({ onClose, onAdd }: AddQuestModalProps) {
 
                <div className="flex gap-4">
                   <div className="flex flex-col flex-1 gap-2">
-                     <label className="text-[10px] font-mono text-white/40 uppercase">Time Limit</label>
+                     <label className="text-[10px] font-mono text-white/40 uppercase">Time Needed (Hours)</label>
                      <input
-                        type="datetime-local"
-                        value={dueDate}
-                        onChange={(e) => setDueDate(e.target.value)}
+                        type="number"
+                        min="0"
+                        value={hours}
+                        onChange={(e) => setHours(Math.max(0, parseInt(e.target.value) || 0))}
+                        className="bg-white/5 border border-white/10 rounded-md px-3 py-2 outline-none focus:border-system-neon/50 text-sm"
+                     />
+                  </div>
+                  <div className="flex flex-col flex-1 gap-2">
+                     <label className="text-[10px] font-mono text-white/40 uppercase">Time Needed (Minutes)</label>
+                     <input
+                        type="number"
+                        min="0"
+                        max="59"
+                        value={minutes}
+                        onChange={(e) => setMinutes(Math.min(59, Math.max(0, parseInt(e.target.value) || 0)))}
                         className="bg-white/5 border border-white/10 rounded-md px-3 py-2 outline-none focus:border-system-neon/50 text-sm"
                      />
                   </div>

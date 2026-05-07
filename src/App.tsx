@@ -272,13 +272,13 @@ export default function App() {
       const qRef = doc(db, 'users', user.uid, 'quests', id);
       if (!quest.completed) {
         await addExp(quest.expReward, quest.category);
-        notify('DAILY MISSION COMPLETED', 'info');
+        notify('MISSION COMPLETED', 'info');
         speak('MISSION COMPLETED. EXPERENCE GAINED.');
         await updateDoc(doc(db, 'users', user.uid), { 
           completedQuests: stats.completedQuests + 1 
         });
       }
-      await updateDoc(qRef, { completed: !quest.completed });
+      await updateDoc(qRef, { completed: !quest.completed, status: !quest.completed ? 'completed' : 'pending' });
     } catch (err) { handleFirestoreError(err, OperationType.UPDATE, `users/${user.uid}/quests/${id}`); }
   };
 
@@ -287,6 +287,42 @@ export default function App() {
     try {
       await deleteDoc(doc(db, 'users', user.uid, 'quests', id));
     } catch (err) { handleFirestoreError(err, OperationType.DELETE, `users/${user.uid}/quests/${id}`); }
+  };
+
+  const startQuest = async (id: string) => {
+    if (!user) return;
+    const questRef = doc(db, 'users', user.uid, 'quests', id);
+    try {
+      await updateDoc(questRef, {
+        status: 'active',
+        startedAt: new Date().toISOString()
+      });
+      notify('MISSION ACTIVATED', 'info');
+      speak('MISSION START. TIME IS RUNNING.');
+    } catch (err) {
+      handleFirestoreError(err, OperationType.UPDATE, `users/${user.uid}/quests/${id}`);
+    }
+  };
+
+  const failQuest = async (id: string, questTitle: string) => {
+    if (!user) return;
+    const questRef = doc(db, 'users', user.uid, 'quests', id);
+    const userRef = doc(db, 'users', user.uid);
+    try {
+      await updateDoc(questRef, {
+        status: 'failed',
+        completed: false
+      });
+      await updateDoc(userRef, {
+        penaltyActive: true,
+        penaltyReason: `MISSION TIMEOUT: ${questTitle}`,
+        penaltyDeadline: new Date(Date.now() + 12 * 60 * 60 * 1000).toISOString()
+      });
+      notify("MISSION FAILED. PENALTY ACTIVATED.", "danger");
+      speak("MISSION FAILED. PENALTY PROTOCOL INITIATED.");
+    } catch (err) {
+      handleFirestoreError(err, OperationType.UPDATE, `users/${user.uid}/quests/${id}`);
+    }
   };
 
   const addQuest = async (qData: any) => {
@@ -493,6 +529,8 @@ export default function App() {
                           onToggle={toggleQuest} 
                           onDelete={deleteQuest} 
                           onAdd={() => setIsModalOpen(true)}
+                          onStart={startQuest}
+                          onFail={failQuest}
                        />
                     </div>
                     <div className="flex flex-col gap-8">
@@ -518,6 +556,8 @@ export default function App() {
                   onToggle={toggleQuest} 
                   onDelete={deleteQuest} 
                   onAdd={() => setIsModalOpen(true)}
+                  onStart={startQuest}
+                  onFail={failQuest}
                 />
               )}
 
