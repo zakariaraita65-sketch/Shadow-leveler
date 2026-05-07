@@ -36,14 +36,14 @@ service cloud.firestore {
     function isValidUserStats(data) {
       return data.keys().hasAll(['rank', 'level', 'exp', 'maxExp', 'gold', 'streak', 'lastActive'])
         && data.rank is string
-        && data.level is int
-        && data.exp is int
-        && data.maxExp is int
-        && data.gold is int
-        && data.streak is int
+        && data.level is number
+        && data.exp is number
+        && data.maxExp is number
+        && data.gold is number
+        && data.streak is number
         && data.lastActive is string
         && (!data.keys().contains('gender') || data.gender in ['male', 'female'])
-        && (!data.keys().contains('age') || data.age is int)
+        && (!data.keys().contains('age') || data.age is number)
         && (!data.keys().contains('penaltyActive') || data.penaltyActive is bool)
         && (!data.keys().contains('penaltyReason') || data.penaltyReason is string)
         && (!data.keys().contains('penaltyDeadline') || data.penaltyDeadline is string);
@@ -53,7 +53,7 @@ service cloud.firestore {
       return data.userId == userId
         && data.keys().hasAll(['userId', 'title', 'expReward', 'type', 'completed', 'category', 'dueDate'])
         && data.title is string && data.title.size() <= 500
-        && data.expReward is int
+        && data.expReward is number
         && data.type in ['daily', 'main']
         && data.completed is bool
         && data.dueDate is string
@@ -63,9 +63,9 @@ service cloud.firestore {
 
     function isValidSkill(data) {
       return data.keys().hasAll(['level', 'exp', 'maxExp'])
-        && data.level is int
-        && data.exp is int
-        && data.maxExp is int;
+        && data.level is number
+        && data.exp is number
+        && data.maxExp is number;
     }
 
     // --- MATCH BLOCKS ---

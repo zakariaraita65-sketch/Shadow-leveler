@@ -13,10 +13,12 @@ export default function Login({ onLoginProgress }: LoginProps) {
   const pressTimer = useRef<NodeJS.Timeout | null>(null);
   const controls = useAnimation();
 
+  const [isLoading, setIsLoading] = useState(false);
+
   const handleLogin = async () => {
     try {
       setError(null);
-      onLoginProgress(true);
+      setIsLoading(true);
       await signInWithFingerprint();
     } catch (err: any) {
       console.error("Login failed", err);
@@ -25,23 +27,25 @@ export default function Login({ onLoginProgress }: LoginProps) {
       } else {
         setError(err.message || "Authentication failed.");
       }
-      onLoginProgress(false);
+      setIsLoading(false);
     }
   };
 
   const handleGoogleLogin = async () => {
     try {
       setError(null);
-      onLoginProgress(true);
+      setIsLoading(true);
       await signInWithGoogle();
     } catch (err: any) {
       console.error("Google Login failed", err);
       setError(err.message || "Google Authentication failed.");
-      onLoginProgress(false);
+      setIsLoading(false);
     }
   };
 
   const startPress = () => {
+    if (isLoading) return;
+    
     setIsPressing(true);
     setError(null);
     controls.start({
@@ -121,7 +125,8 @@ export default function Login({ onLoginProgress }: LoginProps) {
               onMouseLeave={cancelPress}
               onTouchStart={startPress}
               onTouchEnd={cancelPress}
-              className={`w-32 h-32 rounded-full system-border flex flex-col items-center justify-center transition-colors duration-300 relative z-10 ${
+              onContextMenu={(e) => e.preventDefault()}
+              className={`w-32 h-32 rounded-full select-none touch-none system-border flex flex-col items-center justify-center transition-colors duration-300 relative z-10 ${
                 isPressing ? 'bg-system-neon/20 shadow-[0_0_50px_rgba(34,211,238,0.5)] border-system-neon' : 'bg-system-card text-system-neon/50'
               }`}
             >
@@ -130,12 +135,13 @@ export default function Login({ onLoginProgress }: LoginProps) {
           </div>
 
           <p className="text-xs font-mono text-white/50 uppercase tracking-[0.3em] h-4">
-             {isPressing ? "SCANNING BIOMETRICS..." : "HOLD TO AUTHENTICATE"}
+             {isLoading ? "AUTHENTICATING..." : isPressing ? "SCANNING BIOMETRICS..." : "HOLD TO AUTHENTICATE"}
           </p>
 
           <button 
              onClick={handleGoogleLogin}
-             className="mt-4 px-6 py-3 bg-white/5 hover:bg-white/10 system-border rounded-lg text-xs font-mono tracking-widest text-white/80 transition-all uppercase flex items-center gap-2"
+             disabled={isLoading}
+             className="mt-4 px-6 py-3 bg-white/5 hover:bg-white/10 system-border rounded-lg text-xs font-mono tracking-widest text-white/80 transition-all uppercase flex items-center gap-2 disabled:opacity-50"
           >
              Use Standard Login (Google)
           </button>
