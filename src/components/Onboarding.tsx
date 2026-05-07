@@ -1,7 +1,9 @@
 import { useState } from "react";
 import React from "react";
 import { motion } from "motion/react";
-import { User, Shield, UserCircle, Users, Calendar } from "lucide-react";
+import { User, Shield, UserCircle, Users, Calendar, ArrowLeft } from "lucide-react";
+import { signOut } from "firebase/auth";
+import { auth } from "../firebase";
 
 interface OnboardingProps {
   user: any;
@@ -35,7 +37,14 @@ export default function Onboarding({ user, onComplete }: OnboardingProps) {
         animate={{ opacity: 1, y: 0 }}
         className="max-w-lg w-full bg-system-card system-border p-8 rounded-2xl relative z-10"
       >
-        <div className="flex flex-col items-center gap-4 mb-10">
+        <button 
+           onClick={() => signOut(auth)}
+           className="absolute top-4 left-4 text-white/50 hover:text-system-neon flex items-center gap-2 text-xs font-mono uppercase transition-colors"
+        >
+          <ArrowLeft size={14} /> Go Back
+        </button>
+
+        <div className="flex flex-col items-center gap-4 mb-10 pt-4">
           <div className="w-16 h-16 rounded-full bg-system-neon/20 flex items-center justify-center text-system-neon system-glow mb-2">
             <Shield size={32} />
           </div>
