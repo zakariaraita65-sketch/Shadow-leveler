@@ -48,7 +48,8 @@ import Login from './components/Login';
 import Onboarding from './components/Onboarding';
 import AIPenaltyVerifier from './components/AIPenaltyVerifier';
 import { UserStats, Quest, Rank } from './types';
-import { INITIAL_STATS, RANK_ORDER, EXP_PER_LEVEL } from './constants';
+import { INITIAL_STATS, RANK_ORDER, EXP_PER_LEVEL, AVAILABLE_TITLES } from './constants';
+import TitleSelector from './components/TitleSelector';
 
 export default function App() {
   // --- STATE ---
@@ -63,6 +64,7 @@ export default function App() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'dashboard' | 'quests' | 'skills' | 'timer' | 'store' | 'ranks'>('dashboard');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isTitleModalOpen, setIsTitleModalOpen] = useState(false);
 
   // --- AUTH LISTENERS ---
   useEffect(() => {
@@ -248,6 +250,9 @@ export default function App() {
       });
     } catch (err) { handleFirestoreError(err, OperationType.UPDATE, `users/${user.uid}`); }
 
+    // Title Awards Check
+    checkAndAwardTitles(newLevel, stats.completedQuests, amount);
+
     if (category) {
       const skillRef = doc(db, 'users', user.uid, 'skills', category);
       const skillSnap = await getDoc(skillRef);
@@ -281,9 +286,17 @@ export default function App() {
         await addExp(quest.expReward, quest.category);
         notify('MISSION COMPLETED', 'info');
         speak('MISSION COMPLETED. EXPERENCE GAINED.');
+        const newCompletedCount = stats.completedQuests + 1;
         await updateDoc(doc(db, 'users', user.uid), { 
-          completedQuests: stats.completedQuests + 1 
+          completedQuests: newCompletedCount 
         });
+        
+        // Specific Title Check for Hard Quests
+        if (quest.expReward >= 300) {
+            checkAndAwardTitles(stats.level, newCompletedCount, quest.expReward, true);
+        } else {
+            checkAndAwardTitles(stats.level, newCompletedCount, quest.expReward);
+        }
       }
       await updateDoc(qRef, { completed: !quest.completed, status: !quest.completed ? 'completed' : 'pending' });
     } catch (err) { handleFirestoreError(err, OperationType.UPDATE, `users/${user.uid}/quests/${id}`); }
@@ -447,6 +460,51 @@ export default function App() {
 
   const handleLogout = () => signOut(auth);
 
+  const checkAndAwardTitles = async (level: number, completedCount: number, lastExp: number, isHard: boolean = false) => {
+    if (!user) return;
+    const earnedTitles = [...(stats.titles || [])];
+    let newlyEarned = false;
+
+    AVAILABLE_TITLES.forEach(title => {
+       if (earnedTitles.includes(title.name)) return;
+
+       if (title.id === 'hard_worker' && completedCount >= 10) {
+           earnedTitles.push(title.name);
+           newlyEarned = true;
+       }
+       if (title.id === 'scholar' && isHard) {
+           earnedTitles.push(title.name);
+           newlyEarned = true;
+       }
+       if (title.id === 'iron_will' && completedCount >= 50) {
+           earnedTitles.push(title.name);
+           newlyEarned = true;
+       }
+       if (title.id === 'shadow_conqueror' && level >= 10) {
+           earnedTitles.push(title.name);
+           newlyEarned = true;
+       }
+       // Note: Undying and Beast Slayer might need more complex tracking, keeping it simple for now
+    });
+
+    if (newlyEarned) {
+        await updateDoc(doc(db, 'users', user.uid), { titles: earnedTitles });
+        notify(`NEW TITLE UNLOCKED: ${earnedTitles[earnedTitles.length - 1]}`, 'success');
+        speak(`NEW TITLE ACHIEVED! YOU ARE NOW RECOGNIZED AS ${earnedTitles[earnedTitles.length - 1]}`);
+    }
+  };
+
+  const handleSetTitle = async (titleName: string) => {
+    if (!user) return;
+    try {
+        await updateDoc(doc(db, 'users', user.uid), { activeTitle: titleName });
+        notify(`TITLE EQUIPPED: ${titleName}`, 'info');
+        setIsTitleModalOpen(false);
+    } catch (err) {
+        handleFirestoreError(err, OperationType.UPDATE, `users/${user.uid}`);
+    }
+  };
+
   // --- RENDER ---
   if (loading) {
     return (
@@ -564,6 +622,7 @@ export default function App() {
                     stats={stats} 
                     rankIndex={RANK_ORDER.indexOf(stats.rank)} 
                     questCount={quests.length}
+                    onOpenTitles={() => setIsTitleModalOpen(true)}
                   />
                   <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
                     <div className="xl:col-span-2">
@@ -681,6 +740,14 @@ export default function App() {
         )}
         {isModalOpen && (
           <AddQuestModal onClose={() => setIsModalOpen(false)} onAdd={addQuest} />
+        )}
+        {isTitleModalOpen && (
+          <TitleSelector 
+             onClose={() => setIsTitleModalOpen(false)} 
+             earnedTitles={stats.titles || []} 
+             activeTitle={stats.activeTitle || ""}
+             onSelect={handleSetTitle}
+          />
         )}
       </AnimatePresence>
 

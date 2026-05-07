@@ -7,13 +7,15 @@ interface UserHUDProps {
   stats: any;
   rankIndex: number;
   userId: string;
+  onOpenTitles?: () => void;
 }
 
-export default function UserHUD({ stats, rankIndex, userId, questCount = 0 }: UserHUDProps & { questCount?: number }) {
+export default function UserHUD({ stats, rankIndex, userId, questCount = 0, onOpenTitles }: UserHUDProps & { questCount?: number }) {
   if (!stats) return null;
 
   const currentRank = RANK_ORDER[rankIndex] || "E";
-  const currentTitle = RANK_TITLES[currentRank] || "ROOKIE";
+  const rankTitle = RANK_TITLES[currentRank] || "ROOKIE";
+  const activeTitle = stats.activeTitle || rankTitle;
   const level = stats.level || 1;
   const exp = stats.exp || 0;
   const maxExp = stats.maxExp || 1000;
@@ -42,12 +44,16 @@ export default function UserHUD({ stats, rankIndex, userId, questCount = 0 }: Us
         
         <div className="flex items-center gap-6 self-end md:self-center">
           <div className="flex flex-col items-end">
-             <div className="flex items-center gap-2 mb-1">
+             <button 
+                onClick={onOpenTitles}
+                className="flex items-center gap-2 mb-1 group/title hover:brightness-125 transition-all"
+             >
                <span className="w-1 h-1 bg-system-neon/50 rounded-full animate-pulse" />
                <span className="text-[10px] font-mono text-system-neon/70 uppercase tracking-[0.3em] font-bold">
-                 {currentTitle}
+                 {activeTitle}
                </span>
-             </div>
+               <Award size={12} className="text-system-neon/50 group-hover/title:text-system-neon" />
+             </button>
              <div className="text-7xl font-display font-black italic text-system-neon neon-text-strong group-hover:scale-110 transition-all duration-500 leading-none tracking-tighter">
                 {currentRank}
              </div>

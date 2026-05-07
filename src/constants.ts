@@ -47,8 +47,20 @@ export const INITIAL_STATS = {
   streak: 0,
   lastActive: new Date().toISOString(),
   totalFocusTime: 0,
-  completedQuests: 0
+  completedQuests: 0,
+  activeTitle: "The Awakening",
+  titles: ["The Awakening"]
 };
+
+export const AVAILABLE_TITLES = [
+  { id: "awakening", name: "The Awakening", condition: "Initial Title", difficulty: "Easy" },
+  { id: "hard_worker", name: "Hard Worker", condition: "Complete 10 Quests", difficulty: "Easy" },
+  { id: "scholar", name: "Determined Scholar", condition: "Complete a Hard quest", difficulty: "Hard" },
+  { id: "iron_will", name: "Iron Will", condition: "Completed 50 Quests", difficulty: "Medium" },
+  { id: "shadow_conqueror", name: "Shadow Conqueror", condition: "Reach Level 10", difficulty: "Hard" },
+  { id: "undying", name: "The Undying", condition: "Maintain a 10-day streak", difficulty: "Medium" },
+  { id: "beast_slayer", name: "Beast Slayer", condition: "Complete 5 Daily Quests in one day", difficulty: "Medium" }
+];
 
 export const STORE_ITEMS = [
   { 

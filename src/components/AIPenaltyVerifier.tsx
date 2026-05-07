@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect, ChangeEvent } from 'react';
 import { Camera, Upload, CheckCircle, XCircle, Loader2 } from 'lucide-react';
 import { GoogleGenAI, Type } from '@google/genai';
 import { motion, AnimatePresence } from 'motion/react';
@@ -42,7 +42,7 @@ export default function AIPenaltyVerifier({ onVerifySuccess, onVerifyFail, penal
   const minutesLeft = Math.floor(timeLeft / 60);
   const secondsLeft = timeLeft % 60;
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     if (isLockedOut) return;
     const selectedFile = e.target.files?.[0];
     if (selectedFile) {

@@ -58,6 +58,8 @@ export interface UserStats {
   penaltyReason?: string;
   penaltyDeadline?: string;
   penaltyAssignedAt?: string;
+  activeTitle?: string;
+  titles?: string[];
 }
 
 export interface StoreItem {
