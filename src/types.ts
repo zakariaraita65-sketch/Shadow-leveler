@@ -57,6 +57,7 @@ export interface UserStats {
   penaltyActive?: boolean;
   penaltyReason?: string;
   penaltyDeadline?: string;
+  penaltyAssignedAt?: string;
 }
 
 export interface StoreItem {

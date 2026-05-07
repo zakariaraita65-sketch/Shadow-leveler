@@ -46,6 +46,7 @@ import SystemMessage from './components/SystemMessage';
 import AddQuestModal from './components/AddQuestModal';
 import Login from './components/Login';
 import Onboarding from './components/Onboarding';
+import AIPenaltyVerifier from './components/AIPenaltyVerifier';
 import { UserStats, Quest, Rank } from './types';
 import { INITIAL_STATS, RANK_ORDER, EXP_PER_LEVEL } from './constants';
 
@@ -310,7 +311,7 @@ export default function App() {
     }
   };
 
-  const failQuest = async (id: string, questTitle: string) => {
+  const failQuest = async (id: string, questTitle: string, questExpReward: number = 100) => {
     if (!user) return;
     const questRef = doc(db, 'users', user.uid, 'quests', id);
     const userRef = doc(db, 'users', user.uid);
@@ -322,10 +323,31 @@ export default function App() {
       
       const newExp = stats.exp - 200;
 
+      // Dynamically generate a penalty via AI
+      let generatedPenalty = "Complete 50 Push-ups, 100 Squats, or a 3km run.";
+      try {
+          const { GoogleGenAI } = await import('@google/genai');
+          const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+          const diffStr = questExpReward > 100 ? "hard" : "easy";
+          const response = await ai.models.generateContent({
+              model: 'gemini-3-flash-preview',
+              contents: `The user failed a quest called "${questTitle}" with difficulty "${diffStr}". 
+              Generate a creative, difficult, and constructive penalty task for them. 
+              It MUST be one of these types: Religious (e.g. read Quran, pray specific Rakats), Physical (e.g. 100 pushups, hold plank), or Academic (e.g. read a book for 30 mins).
+              Respond ONLY with the penalty task description. Do not categorize or explain it. Keep it under 2 sentences.`
+          });
+          if (response.text) {
+              generatedPenalty = response.text.trim();
+          }
+      } catch (err) {
+          console.error("AI Penalty Gen Error", err);
+      }
+
       await updateDoc(userRef, {
         penaltyActive: true,
         exp: Math.max(-9999, newExp),
-        penaltyReason: `MISSION TIMEOUT: ${questTitle}`,
+        penaltyReason: generatedPenalty,
+        penaltyAssignedAt: new Date().toISOString(),
         penaltyDeadline: new Date(Date.now() + 12 * 60 * 60 * 1000).toISOString()
       });
       notify("MISSION FAILED. PENALTY ACTIVATED. -200 EXP.", "danger");
@@ -503,8 +525,19 @@ export default function App() {
                  </div>
               </div>
               <button 
+                onClick={async () => {
+                  if (!user) return;
+                  notify("DEV COMMAND EXECUTED: +500 XP", "success");
+                  await addExp(500, 'dev');
+                }}
+                className="flex items-center gap-3 px-3 py-2 text-system-neon hover:text-white transition-colors"
+               >
+                 <Sparkles size={20} />
+                 <span className="text-sm font-medium">DEV: +500 XP</span>
+               </button>
+              <button 
                 onClick={handleLogout}
-                className="flex items-center gap-3 px-3 py-2 text-white/40 hover:text-system-danger transition-colors"
+                className="flex items-center gap-3 px-3 py-2 text-white/40 hover:text-system-danger transition-colors mt-2"
               >
                 <LogOut size={20} />
                 <span className="text-sm font-medium">Log out of Matrix</span>
@@ -622,35 +655,23 @@ export default function App() {
                   <h2 className="text-3xl font-display font-black italic text-white">FAILED TO COMPLY</h2>
                </div>
                <div className="text-white/60 text-sm font-mono uppercase italic">
-                  Reason: {stats.penaltyReason}<br/>
-                  <div className="mt-4 mb-2 text-white font-bold tracking-widest text-xs">
-                    CHOOSE & COMPLETE ONE EXTREME TASK TO ATONE:
-                  </div>
-                  <div className="flex flex-col gap-2 text-left normal-case mt-2">
-                     <div className="bg-white/5 border border-white/10 p-3 rounded-lg flex items-start gap-3">
-                       <span className="text-system-neon font-black mt-0.5">1/</span>
-                       <div><strong className="text-system-neon tracking-wider uppercase text-xs">Religious</strong><br/><span className="text-white/80">Pray 2-4 Rakahs or read 2 pages of the Quran.</span></div>
-                     </div>
-                     <div className="bg-white/5 border border-white/10 p-3 rounded-lg flex items-start gap-3">
-                       <span className="text-system-danger font-black mt-0.5">2/</span>
-                       <div><strong className="text-system-danger tracking-wider uppercase text-xs">Physical</strong><br/><span className="text-white/80">Complete 50 Push-ups, 100 Squats, or a 3km run.</span></div>
-                     </div>
-                     <div className="bg-white/5 border border-white/10 p-3 rounded-lg flex items-start gap-3">
-                       <span className="text-purple-400 font-black mt-0.5">3/</span>
-                       <div><strong className="text-purple-400 tracking-wider uppercase text-xs">Academic</strong><br/><span className="text-white/80">25 minutes of deep reading or intense study. No screens.</span></div>
-                     </div>
+                  Assigned Task: <br/>
+                  <div className="mt-4 mb-2 p-4 border border-system-danger/30 bg-system-danger/10 text-white font-bold tracking-widest text-xs rounded-lg">
+                    {stats.penaltyReason}
                   </div>
                </div>
-               <div className="flex flex-col gap-4 mt-2">
-                  <button 
-                    onClick={handleClearPenalty}
-                    className="w-full py-4 bg-system-danger text-white font-display font-black uppercase rounded-lg hover:scale-105 active:scale-95 transition-all"
-                  >
-                    I Have Completed the Penalty
-                  </button>
+
+               <AIPenaltyVerifier 
+                   penaltyTaskDescription={stats.penaltyReason || "Penalty Task"}
+                   penaltyAssignedAt={stats.penaltyAssignedAt}
+                   onVerifySuccess={handleClearPenalty}
+                   onVerifyFail={() => notify("AI Verification Failed. Evidenced not accepted.", "danger")}
+               />
+
+               <div className="flex flex-col gap-4 mt-2 border-t border-white/10 pt-4">
                   <button 
                     onClick={handlePenaltyFailure}
-                    className="w-full py-3 border border-white/10 text-white/40 font-mono text-[10px] uppercase hover:text-system-danger transition-colors"
+                    className="w-full py-3 border border-white/10 text-white/40 font-mono text-[10px] uppercase hover:text-system-danger transition-colors mt-4"
                   >
                     Accept Failure (Level -1)
                   </button>

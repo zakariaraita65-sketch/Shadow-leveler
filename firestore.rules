@@ -46,6 +46,7 @@ service cloud.firestore {
         && (!('age' in data) || data.age is number)
         && (!('penaltyActive' in data) || data.penaltyActive is bool)
         && (!('penaltyReason' in data) || data.penaltyReason is string)
+        && (!('penaltyAssignedAt' in data) || data.penaltyAssignedAt is string)
         && (!('penaltyDeadline' in data) || data.penaltyDeadline is string);
     }
 
@@ -80,7 +81,8 @@ service cloud.firestore {
         // Simple updates for now, restricting immutable fields would be better but let's stick to the flow
         incoming().diff(existing()).affectedKeys().hasOnly([
           'rank', 'level', 'exp', 'maxExp', 'gold', 'streak', 'lastActive', 
-          'totalFocusTime', 'completedQuests', 'displayName', 'photoURL'
+          'totalFocusTime', 'completedQuests', 'displayName', 'photoURL',
+          'penaltyActive', 'penaltyReason', 'penaltyDeadline', 'penaltyAssignedAt'
         ])
       );
 
