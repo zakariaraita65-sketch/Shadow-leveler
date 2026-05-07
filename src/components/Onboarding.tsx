@@ -37,13 +37,6 @@ export default function Onboarding({ user, onComplete }: OnboardingProps) {
         animate={{ opacity: 1, y: 0 }}
         className="max-w-lg w-full bg-system-card system-border p-8 rounded-2xl relative z-10"
       >
-        <button 
-           onClick={() => signOut(auth)}
-           className="absolute top-4 left-4 text-white/50 hover:text-system-neon flex items-center gap-2 text-xs font-mono uppercase transition-colors"
-        >
-          <ArrowLeft size={14} /> Go Back
-        </button>
-
         <div className="flex flex-col items-center gap-4 mb-10 pt-4">
           <div className="w-16 h-16 rounded-full bg-system-neon/20 flex items-center justify-center text-system-neon system-glow mb-2">
             <Shield size={32} />
@@ -54,6 +47,16 @@ export default function Onboarding({ user, onComplete }: OnboardingProps) {
         </div>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+          <div className="flex justify-start border-b border-white/5 pb-4 mb-2">
+            <button 
+               type="button"
+               onClick={() => signOut(auth)}
+               className="text-white/50 hover:text-system-neon flex items-center gap-2 text-xs font-mono uppercase transition-colors"
+            >
+              <ArrowLeft size={14} /> Go Back (Sign Out)
+            </button>
+          </div>
+
           {/* Display Name */}
           <div className="flex flex-col gap-2">
             <label className="flex items-center gap-2 text-xs font-mono text-white/50 uppercase tracking-widest">
