@@ -2,23 +2,37 @@ import { Rank } from "./types";
 
 export const RANK_ORDER = [
   Rank.E,
+  Rank.E_PLUS,
   Rank.D,
+  Rank.D_PLUS,
   Rank.C,
+  Rank.C_PLUS,
   Rank.B,
+  Rank.B_PLUS,
   Rank.A,
+  Rank.A_PLUS,
   Rank.S,
+  Rank.S_PLUS,
   Rank.SS,
+  Rank.SS_PLUS,
   Rank.SSS
 ];
 
 export const RANK_TITLES: Record<string, string> = {
   [Rank.E]: "NOVICE HUNTER",
+  [Rank.E_PLUS]: "NOVICE HUNTER+",
   [Rank.D]: "HUNTER",
+  [Rank.D_PLUS]: "HUNTER+",
   [Rank.C]: "VETERAN HUNTER",
+  [Rank.C_PLUS]: "VETERAN HUNTER+",
   [Rank.B]: "ELITE HUNTER",
+  [Rank.B_PLUS]: "ELITE HUNTER+",
   [Rank.A]: "MASTER HUNTER",
+  [Rank.A_PLUS]: "MASTER HUNTER+",
   [Rank.S]: "MONARCH",
+  [Rank.S_PLUS]: "MONARCH+",
   [Rank.SS]: "NATIONAL LEVEL",
+  [Rank.SS_PLUS]: "NATIONAL LEVEL+",
   [Rank.SSS]: "SHADOW MONARCH"
 };
 

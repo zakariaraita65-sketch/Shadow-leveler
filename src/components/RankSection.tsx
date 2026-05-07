@@ -23,19 +23,26 @@ export default function RankSection({ level, rank, exp, maxExp }: RankSectionPro
   const visibleLevels = Array.from({ length: endLevel - startLevel + 1 }, (_, i) => startLevel + i);
 
   const getRankForLevel = (l: number): Rank => {
-    const idx = Math.min(Math.floor((l - 1) / 10), RANK_ORDER.length - 1);
+    const idx = Math.min(Math.floor((l - 1) / 5), RANK_ORDER.length - 1);
     return RANK_ORDER[idx];
   };
 
   const getRankColor = (r: Rank) => {
     switch (r) {
       case Rank.E: return "text-gray-400 border-gray-400 bg-gray-400/10";
-      case Rank.D: return "text-green-400 border-green-400 bg-green-400/10";
-      case Rank.C: return "text-blue-400 border-blue-400 bg-blue-400/10";
-      case Rank.B: return "text-purple-400 border-purple-400 bg-purple-400/10";
-      case Rank.A: return "text-orange-400 border-orange-400 bg-orange-400/10";
+      case Rank.E_PLUS: return "text-gray-300 border-gray-300 bg-gray-300/10";
+      case Rank.D: return "text-green-500 border-green-500 bg-green-500/10";
+      case Rank.D_PLUS: return "text-green-400 border-green-400 bg-green-400/10";
+      case Rank.C: return "text-blue-500 border-blue-500 bg-blue-500/10";
+      case Rank.C_PLUS: return "text-blue-400 border-blue-400 bg-blue-400/10";
+      case Rank.B: return "text-purple-500 border-purple-500 bg-purple-500/10";
+      case Rank.B_PLUS: return "text-purple-400 border-purple-400 bg-purple-400/10";
+      case Rank.A: return "text-orange-500 border-orange-500 bg-orange-500/10";
+      case Rank.A_PLUS: return "text-orange-400 border-orange-400 bg-orange-400/10";
       case Rank.S: return "text-red-500 border-red-500 bg-red-500/10";
-      case Rank.SS: return "text-yellow-400 border-yellow-400 bg-yellow-400/10";
+      case Rank.S_PLUS: return "text-red-400 border-red-400 bg-red-400/10";
+      case Rank.SS: return "text-yellow-500 border-yellow-500 bg-yellow-500/10";
+      case Rank.SS_PLUS: return "text-yellow-400 border-yellow-400 bg-yellow-400/10";
       case Rank.SSS: return "text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 via-red-500 to-purple-500 border-system-neon/50 bg-system-neon/10";
       default: return "text-white border-white";
     }

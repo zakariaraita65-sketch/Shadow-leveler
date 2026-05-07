@@ -90,27 +90,13 @@ export default function AddQuestModal({ onClose, onAdd }: AddQuestModalProps) {
                   />
                </div>
 
-               <div className="flex gap-4">
-                  <div className="flex flex-col flex-1 gap-2">
-                     <label className="text-[10px] font-mono text-white/40 uppercase">Time Needed (Hours)</label>
-                     <input
-                        type="number"
-                        min="0"
-                        value={hours}
-                        onChange={(e) => setHours(Math.max(0, parseInt(e.target.value) || 0))}
-                        className="bg-white/5 border border-white/10 rounded-md px-3 py-2 outline-none focus:border-system-neon/50 text-sm"
-                     />
-                  </div>
-                  <div className="flex flex-col flex-1 gap-2">
-                     <label className="text-[10px] font-mono text-white/40 uppercase">Time Needed (Minutes)</label>
-                     <input
-                        type="number"
-                        min="0"
-                        max="59"
-                        value={minutes}
-                        onChange={(e) => setMinutes(Math.min(59, Math.max(0, parseInt(e.target.value) || 0)))}
-                        className="bg-white/5 border border-white/10 rounded-md px-3 py-2 outline-none focus:border-system-neon/50 text-sm"
-                     />
+               <div className="flex flex-col gap-2">
+                  <label className="text-[10px] font-mono text-white/40 uppercase">Time Needed</label>
+                  <div className="flex flex-wrap gap-2">
+                     <button type="button" onClick={() => { setHours(0); setMinutes(25); }} className={`px-4 py-2 hover:bg-white/10 border ${hours === 0 && minutes === 25 ? 'bg-system-neon/10 border-system-neon text-system-neon' : 'bg-white/5 border-white/10 text-white/60'} rounded text-xs font-mono transition-colors`}>25 Mins</button>
+                     <button type="button" onClick={() => { setHours(1); setMinutes(0); }} className={`px-4 py-2 hover:bg-white/10 border ${hours === 1 && minutes === 0 ? 'bg-system-neon/10 border-system-neon text-system-neon' : 'bg-white/5 border-white/10 text-white/60'} rounded text-xs font-mono transition-colors`}>1 Hour</button>
+                     <button type="button" onClick={() => { setHours(1); setMinutes(30); }} className={`px-4 py-2 hover:bg-white/10 border ${hours === 1 && minutes === 30 ? 'bg-system-neon/10 border-system-neon text-system-neon' : 'bg-white/5 border-white/10 text-white/60'} rounded text-xs font-mono transition-colors`}>1.5 Hours</button>
+                     <button type="button" onClick={() => { setHours(2); setMinutes(0); }} className={`px-4 py-2 hover:bg-white/10 border ${hours === 2 && minutes === 0 ? 'bg-system-neon/10 border-system-neon text-system-neon' : 'bg-white/5 border-white/10 text-white/60'} rounded text-xs font-mono transition-colors`}>2 Hours</button>
                   </div>
                </div>
 

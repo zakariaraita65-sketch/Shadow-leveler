@@ -1,12 +1,19 @@
 
 export enum Rank {
   E = "E",
+  E_PLUS = "E+",
   D = "D",
+  D_PLUS = "D+",
   C = "C",
+  C_PLUS = "C+",
   B = "B",
+  B_PLUS = "B+",
   A = "A",
+  A_PLUS = "A+",
   S = "S",
+  S_PLUS = "S+",
   SS = "SS",
+  SS_PLUS = "SS+",
   SSS = "SSS"
 }
 

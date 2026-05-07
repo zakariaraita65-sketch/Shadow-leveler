@@ -1,8 +1,16 @@
-import React from "react";
-import { motion } from "motion/react";
-import { Plus, Check, Trash2, Calendar, Swords, ScrollText, Volume2, Clock } from "lucide-react";
+import React, { useState, useEffect, useRef } from "react";
+import { motion, AnimatePresence } from "motion/react";
+import { Plus, Check, Trash2, Calendar, Swords, ScrollText, Volume2, Clock, VolumeX, Upload, Play, Pause, AlertCircle, PlayCircle, PauseCircle } from "lucide-react";
 import { Quest } from "../types";
 import { speak } from "../lib/voice";
+
+const AMBIENT_SOUNDS = [
+  { id: 'rain', name: 'Rain', url: 'https://actions.google.com/sounds/v1/weather/rain_heavy_loud.ogg' },
+  { id: 'ocean', name: 'Ocean Waves', url: 'https://actions.google.com/sounds/v1/water/waves_crashing_on_rock_beach.ogg' },
+  { id: 'wind', name: 'Wind', url: 'https://actions.google.com/sounds/v1/weather/wind.ogg' },
+  { id: 'thunder', name: 'Thunderstorm', url: 'https://actions.google.com/sounds/v1/weather/thunderstorm.ogg' },
+  { id: 'cafe', name: 'Coffee Shop', url: 'https://actions.google.com/sounds/v1/ambiences/coffee_shop.ogg' },
+];
 
 interface QuestSectionProps {
   quests: Quest[];
@@ -119,9 +127,15 @@ interface QuestCardProps {
 }
 
 function QuestCard({ quest, onToggle, onDelete, onStart, onFail }: QuestCardProps) {
-  const [timeLeft, setTimeLeft] = React.useState<number | null>(null);
+  const [timeLeft, setTimeLeft] = useState<number | null>(null);
+  const [showVerification, setShowVerification] = useState(false);
+  
+  // Audio state
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [selectedSound, setSelectedSound] = useState(AMBIENT_SOUNDS[0]);
+  const audioRef = useRef<HTMLAudioElement>(null);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (quest.status === 'active' && quest.startedAt && quest.duration) {
       const endTime = new Date(quest.startedAt).getTime() + quest.duration * 60 * 1000;
       
@@ -143,6 +157,28 @@ function QuestCard({ quest, onToggle, onDelete, onStart, onFail }: QuestCardProp
     }
   }, [quest.status, quest.startedAt, quest.duration, onFail]);
 
+  useEffect(() => {
+    if (audioRef.current && isPlaying && quest.status === 'active') {
+      audioRef.current.play().catch(e => console.error("Audio block:", e));
+    } else if (audioRef.current) {
+      audioRef.current.pause();
+    }
+  }, [isPlaying, quest.status, selectedSound]);
+
+  const handleToggleClick = () => {
+    if (!quest.completed && quest.status !== 'failed') {
+      setShowVerification(true);
+    } else if (quest.completed) {
+      onToggle(); // un-complete
+    }
+  };
+
+  const handleVerify = () => {
+    setShowVerification(false);
+    setIsPlaying(false);
+    onToggle();
+  };
+
   const formatTime = (ms: number) => {
     const totalSeconds = Math.floor(ms / 1000);
     const h = Math.floor(totalSeconds / 3600);
@@ -151,85 +187,153 @@ function QuestCard({ quest, onToggle, onDelete, onStart, onFail }: QuestCardProp
     return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
   };
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      layout
-      className={`group relative flex items-center gap-4 p-4 rounded-lg system-border transition-all ${
-        quest.completed ? "bg-white/5 border-white/5" : "bg-system-card hover:bg-slate-800/80"
-      }`}
-    >
-      <button
-        onClick={onToggle}
-        className={`w-6 h-6 rounded border flex items-center justify-center transition-all ${
-          quest.completed 
-            ? "bg-system-neon border-system-neon text-system-bg" 
-            : "border-white/20 hover:border-system-neon hover:bg-system-neon/10"
+    <>
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        layout
+        className={`group relative flex items-center gap-4 p-4 rounded-lg system-border transition-all ${
+          quest.completed ? "bg-white/5 border-white/5" : "bg-system-card hover:bg-slate-800/80"
         }`}
       >
-        {quest.completed && <Check size={14} strokeWidth={4} />}
-      </button>
+        <button
+          onClick={handleToggleClick}
+          className={`w-6 h-6 shrink-0 rounded border flex items-center justify-center transition-all ${
+            quest.completed 
+              ? "bg-system-neon border-system-neon text-system-bg" 
+              : "border-white/20 hover:border-system-neon hover:bg-system-neon/10"
+          }`}
+        >
+          {quest.completed && <Check size={14} strokeWidth={4} />}
+        </button>
 
-      <div className="flex flex-col flex-1">
-        <div className="flex items-center gap-2">
-          <h4 className={`font-medium ${quest.completed ? "line-through text-white/30" : "text-white"}`}>
-            {quest.title}
-          </h4>
-          {!quest.completed && (
-            <button 
-              onClick={(e) => { e.stopPropagation(); speak(quest.title); }}
-              className="text-white/20 hover:text-system-neon transition-colors"
-              title="Read Objective"
-            >
-              <Volume2 size={12} />
-            </button>
-          )}
-        </div>
-        
-        {quest.description && (
-          <p className="text-xs text-white/50 mt-1 mb-1 line-clamp-2">
-            {quest.description}
-          </p>
-        )}
-
-        <div className="flex items-center gap-3 text-[10px] font-mono text-white/40 mt-1 flex-wrap">
-          <span className="flex items-center gap-1 uppercase">
-            <ScrollText size={10} /> {quest.category}
-          </span>
-          <span className="flex items-center gap-1 text-system-neon uppercase">
-             +{quest.expReward} EXP
-          </span>
-          {quest.status === 'failed' && (
-            <span className="flex items-center gap-1 text-system-danger uppercase font-bold ml-auto">
-               FAILED
-            </span>
-          )}
-          {quest.duration !== undefined && quest.status === 'pending' && (
-            <span className="flex items-center gap-1 text-white/50 uppercase ml-auto">
-              <Calendar size={10} /> {Math.floor(quest.duration / 60)}h {quest.duration % 60}m needed
+        <div className="flex flex-col flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <h4 className={`font-medium truncate ${quest.completed ? "line-through text-white/30" : "text-white"}`}>
+              {quest.title}
+            </h4>
+            {!quest.completed && (
               <button 
-                onClick={onStart}
-                className="ml-2 px-2 py-1 bg-white/10 hover:bg-system-neon hover:text-black rounded transition-colors text-[9px] font-bold"
+                onClick={(e) => { e.stopPropagation(); speak(quest.title); }}
+                className="text-white/20 hover:text-system-neon transition-colors shrink-0"
+                title="Read Objective"
               >
-                START NOW
+                <Volume2 size={12} />
               </button>
-            </span>
+            )}
+          </div>
+          
+          {quest.description && (
+            <p className="text-xs text-white/50 mt-1 mb-1 line-clamp-2">
+              {quest.description}
+            </p>
           )}
-          {quest.status === 'active' && timeLeft !== null && (
-            <span className="flex items-center gap-1 text-system-neon uppercase font-bold ml-auto animate-pulse">
-              <Clock size={10} /> {formatTime(timeLeft)}
-            </span>
-          )}
-        </div>
-      </div>
 
-      <button
-        onClick={onDelete}
-        className="opacity-0 group-hover:opacity-100 p-2 text-white/30 hover:text-system-danger transition-all"
-      >
-        <Trash2 size={16} />
-      </button>
-    </motion.div>
+          <div className="flex items-center gap-3 text-[10px] font-mono text-white/40 mt-1 flex-wrap">
+            <span className="flex items-center gap-1 uppercase">
+              <ScrollText size={10} /> {quest.category}
+            </span>
+            <span className="flex items-center gap-1 text-system-neon uppercase">
+               +{quest.expReward} EXP
+            </span>
+            {quest.status === 'failed' && (
+              <span className="flex items-center gap-1 text-system-danger uppercase font-bold ml-auto">
+                 FAILED
+              </span>
+            )}
+            {quest.duration !== undefined && quest.status === 'pending' && (
+              <span className="flex items-center gap-1 text-white/50 uppercase ml-auto">
+                <Calendar size={10} /> {Math.floor(quest.duration / 60)}h {quest.duration % 60}m needed
+                <button 
+                  onClick={() => onStart()}
+                  className="ml-2 px-2 py-1 bg-white/10 hover:bg-system-neon hover:text-black rounded transition-colors text-[9px] font-bold"
+                >
+                  START NOW
+                </button>
+              </span>
+            )}
+            {quest.status === 'active' && timeLeft !== null && (
+              <div className="flex items-center gap-3 ml-auto flex-wrap justify-end">
+                {/* Audio Controls */}
+                <div className="flex items-center gap-2 bg-white/5 px-2 py-1 rounded border border-white/10">
+                  <select
+                    className="text-[9px] bg-transparent outline-none text-white/70"
+                    value={selectedSound.id}
+                    onChange={(e) => {
+                      const sd = AMBIENT_SOUNDS.find(s => s.id === e.target.value);
+                      if (sd) setSelectedSound(sd);
+                    }}
+                  >
+                    {AMBIENT_SOUNDS.map(s => <option key={s.id} value={s.id} className="text-black">{s.name}</option>)}
+                  </select>
+                  <button onClick={() => setIsPlaying(!isPlaying)} className="text-system-neon hover:text-white transition-colors">
+                    {isPlaying ? <PauseCircle size={14} /> : <PlayCircle size={14} />}
+                  </button>
+                </div>
+                {/* Timer */}
+                <span className="flex items-center gap-1 text-system-neon uppercase font-bold animate-pulse">
+                  <Clock size={10} /> {formatTime(timeLeft)}
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <button
+          onClick={onDelete}
+          className="opacity-0 group-hover:opacity-100 p-2 text-white/30 hover:text-system-danger transition-all shrink-0"
+        >
+          <Trash2 size={16} />
+        </button>
+      </motion.div>
+
+      {/* Hidden audio element for ambient sounds */}
+      <audio ref={audioRef} src={selectedSound.url} loop className="hidden" />
+
+      {/* Verification Modal overlay */}
+      <AnimatePresence>
+        {showVerification && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setShowVerification(false)} />
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="relative w-full max-w-sm bg-system-card system-border rounded-xl p-6"
+            >
+              <h3 className="text-lg font-display font-bold mb-2 flex items-center gap-2 text-system-neon">
+                <AlertCircle size={18} /> VERIFY COMPLETION
+              </h3>
+              <p className="text-xs text-white/60 mb-6 uppercase tracking-widest font-mono">
+                Provide photographic evidence of your completed mission to gain EXP.
+              </p>
+
+              <div className="w-full aspect-video border-2 border-dashed border-white/20 rounded-lg flex flex-col items-center justify-center mb-6 bg-black/30 hover:border-system-neon/50 hover:bg-system-neon/5 transition-all cursor-pointer overflow-hidden relative group">
+                <Upload size={32} className="text-white/30 mb-2 group-hover:text-system-neon transition-colors" />
+                <span className="text-[10px] font-mono text-white/50 group-hover:text-white transition-colors uppercase">Click to upload photo</span>
+                <input 
+                  type="file" 
+                  accept="image/*" 
+                  capture="environment" 
+                  className="absolute inset-0 opacity-0 cursor-pointer"
+                  onChange={(e) => {
+                    // Pretentious "uploading" effect simply verifies it directly
+                    if (e.target.files && e.target.files.length > 0) {
+                      handleVerify();
+                    }
+                  }}
+                />
+              </div>
+
+              <div className="flex gap-3">
+                 <button onClick={() => setShowVerification(false)} className="flex-1 py-3 bg-white/5 hover:bg-white/10 rounded uppercase text-[10px] font-bold tracking-widest text-white/70">Cancel</button>
+                 <button onClick={handleVerify} className="flex-1 py-3 bg-system-neon hover:bg-white text-black rounded uppercase text-[10px] font-bold tracking-widest transition-all shadow-lg shadow-system-neon/20">Bypass / Verify</button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+    </>
   );
 }
 

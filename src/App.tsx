@@ -74,15 +74,21 @@ export default function App() {
       }
 
       // Check if User Profile exists
-      const userRef = doc(db, 'users', u.uid);
-      const userSnap = await getDoc(userRef);
-      
-      if (!userSnap.exists()) {
-        setShowOnboarding(true);
+      try {
+        const userRef = doc(db, 'users', u.uid);
+        const userSnap = await getDoc(userRef);
+        
+        if (!userSnap.exists()) {
+          setShowOnboarding(true);
+          setLoading(false);
+        } else {
+          setShowOnboarding(false);
+          setLoading(false);
+        }
+      } catch (err) {
+        console.error("Error fetching user profile:", err);
         setLoading(false);
-      } else {
-        setShowOnboarding(false);
-        setLoading(false);
+        // Fallback or handle error
       }
     });
     return unsub;
@@ -220,7 +226,7 @@ export default function App() {
       notify(msg, 'success');
       speak(msg);
       
-      const rankIdx = Math.floor(newLevel / 10);
+      const rankIdx = Math.floor((newLevel - 1) / 5);
       if (rankIdx < RANK_ORDER.length && RANK_ORDER[rankIdx] !== newRank) {
         newRank = RANK_ORDER[rankIdx];
         const rankMsg = `RANK UP! NEW RANK: ${newRank}-RANK`;
@@ -313,13 +319,17 @@ export default function App() {
         status: 'failed',
         completed: false
       });
+      
+      const newExp = stats.exp - 200;
+
       await updateDoc(userRef, {
         penaltyActive: true,
+        exp: Math.max(-9999, newExp),
         penaltyReason: `MISSION TIMEOUT: ${questTitle}`,
         penaltyDeadline: new Date(Date.now() + 12 * 60 * 60 * 1000).toISOString()
       });
-      notify("MISSION FAILED. PENALTY ACTIVATED.", "danger");
-      speak("MISSION FAILED. PENALTY PROTOCOL INITIATED.");
+      notify("MISSION FAILED. PENALTY ACTIVATED. -200 EXP.", "danger");
+      speak("MISSION FAILED. PENALTY PROTOCOL INITIATED. TWO HUNDRED EXP DEDUCTED.");
     } catch (err) {
       handleFirestoreError(err, OperationType.UPDATE, `users/${user.uid}/quests/${id}`);
     }
@@ -611,16 +621,32 @@ export default function App() {
                   <span className="text-xs font-mono text-system-danger tracking-[0.4em] font-bold uppercase">Penalty Mission</span>
                   <h2 className="text-3xl font-display font-black italic text-white">FAILED TO COMPLY</h2>
                </div>
-               <p className="text-white/60 text-sm font-mono uppercase italic">
+               <div className="text-white/60 text-sm font-mono uppercase italic">
                   Reason: {stats.penaltyReason}<br/>
-                  "Survive the penalty or face permanent degradation."
-               </p>
-               <div className="flex flex-col gap-4 mt-4">
+                  <div className="mt-4 mb-2 text-white font-bold tracking-widest text-xs">
+                    CHOOSE & COMPLETE ONE EXTREME TASK TO ATONE:
+                  </div>
+                  <div className="flex flex-col gap-2 text-left normal-case mt-2">
+                     <div className="bg-white/5 border border-white/10 p-3 rounded-lg flex items-start gap-3">
+                       <span className="text-system-neon font-black mt-0.5">1/</span>
+                       <div><strong className="text-system-neon tracking-wider uppercase text-xs">Religious</strong><br/><span className="text-white/80">Pray 2-4 Rakahs or read 2 pages of the Quran.</span></div>
+                     </div>
+                     <div className="bg-white/5 border border-white/10 p-3 rounded-lg flex items-start gap-3">
+                       <span className="text-system-danger font-black mt-0.5">2/</span>
+                       <div><strong className="text-system-danger tracking-wider uppercase text-xs">Physical</strong><br/><span className="text-white/80">Complete 50 Push-ups, 100 Squats, or a 3km run.</span></div>
+                     </div>
+                     <div className="bg-white/5 border border-white/10 p-3 rounded-lg flex items-start gap-3">
+                       <span className="text-purple-400 font-black mt-0.5">3/</span>
+                       <div><strong className="text-purple-400 tracking-wider uppercase text-xs">Academic</strong><br/><span className="text-white/80">25 minutes of deep reading or intense study. No screens.</span></div>
+                     </div>
+                  </div>
+               </div>
+               <div className="flex flex-col gap-4 mt-2">
                   <button 
                     onClick={handleClearPenalty}
                     className="w-full py-4 bg-system-danger text-white font-display font-black uppercase rounded-lg hover:scale-105 active:scale-95 transition-all"
                   >
-                    I Have Completed 100 Push-ups
+                    I Have Completed the Penalty
                   </button>
                   <button 
                     onClick={handlePenaltyFailure}

@@ -68,7 +68,7 @@ export default function UserHUD({ stats, rankIndex, userId, questCount = 0 }: Us
         <div className="h-3 w-full bg-black/40 rounded-full overflow-hidden border border-white/5 shadow-inner">
           <motion.div 
             initial={{ width: 0 }}
-            animate={{ width: `${(exp / Math.max(1, maxExp)) * 100}%` }}
+            animate={{ width: `${Math.max(0, (exp / Math.max(1, maxExp)) * 100)}%` }}
             transition={{ type: "spring", stiffness: 40, damping: 15 }}
             className="h-full bg-gradient-to-r from-system-accent via-system-neon to-system-purple relative"
           >
