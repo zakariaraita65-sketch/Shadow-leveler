@@ -38,6 +38,25 @@ export const RANK_TITLES: Record<string, string> = {
 
 export const EXP_PER_LEVEL = 1000;
 
+export const ACADEMIC_PENALTIES = [
+  "Solve {n} complex mathematical or logical problems.",
+  "Summarize a difficult concept in your field of study for {n} minutes.",
+  "Read {n} pages of an academic or technical book.",
+  "Explain your current study topic to an imaginary audience for {n} minutes.",
+  "Write a {n}-word essay on the importance of discipline.",
+  "Complete the failed mission + {n} extra focused sessions.",
+  "Review and correct {n} previous mistakes in your work.",
+  "Transcribe {n} key definitions or formulas by hand.",
+  "Research and summarize {n} new concepts related to your studies.",
+  "Practice a skill or language for {n} minutes in one sitting."
+];
+
+export const GET_RANDOM_PENALTY = () => {
+    const template = ACADEMIC_PENALTIES[Math.floor(Math.random() * ACADEMIC_PENALTIES.length)];
+    const n = Math.floor(Math.random() * 20) + 5;
+    return template.replace("{n}", n.toString());
+};
+
 export const INITIAL_STATS = {
   rank: Rank.E,
   level: 1,
@@ -49,17 +68,26 @@ export const INITIAL_STATS = {
   totalFocusTime: 0,
   completedQuests: 0,
   activeTitle: "The Awakening",
-  titles: ["The Awakening"]
+  titles: ["The Awakening"],
+  pardonTickets: 1
+};
+
+export const DIFFICULTY_COLORS: Record<string, string> = {
+  "Legendary": "text-purple-400 border-purple-900/50 bg-purple-950/20",
+  "Hard": "text-red-400 border-red-900/50 bg-red-950/20",
+  "Medium": "text-orange-400 border-orange-900/50 bg-orange-950/20",
+  "Easy": "text-blue-400 border-blue-900/50 bg-blue-950/20"
 };
 
 export const AVAILABLE_TITLES = [
   { id: "awakening", name: "The Awakening", condition: "Initial Title", difficulty: "Easy" },
-  { id: "hard_worker", name: "Hard Worker", condition: "Complete 10 Quests", difficulty: "Easy" },
-  { id: "scholar", name: "Determined Scholar", condition: "Complete a Hard quest", difficulty: "Hard" },
-  { id: "iron_will", name: "Iron Will", condition: "Completed 50 Quests", difficulty: "Medium" },
-  { id: "shadow_conqueror", name: "Shadow Conqueror", condition: "Reach Level 10", difficulty: "Hard" },
-  { id: "undying", name: "The Undying", condition: "Maintain a 10-day streak", difficulty: "Medium" },
-  { id: "beast_slayer", name: "Beast Slayer", condition: "Complete 5 Daily Quests in one day", difficulty: "Medium" }
+  { id: "night_stalker", name: "Night Stalker", condition: "Complete 5 Daily Quests", difficulty: "Medium" },
+  { id: "void_hunter", name: "Void Hunter", condition: "Complete a quest in every category", difficulty: "Medium" },
+  { id: "vampire_lord", name: "Vampire Overlord", condition: "Complete 10 Hard Quests", difficulty: "Hard" },
+  { id: "monarch_death", name: "Monarch of Death", condition: "Maintain a 15-day streak", difficulty: "Hard" },
+  { id: "abyss_walker", name: "Abyss Walker", condition: "Complete 100 Quests", difficulty: "Hard" },
+  { id: "blood_sovereign", name: "Blood Sovereign", condition: "Earn 10,000 Total XP", difficulty: "Hard" },
+  { id: "shadow_king", name: "Shadow King", condition: "Reach Level 15", difficulty: "Legendary" }
 ];
 
 export const STORE_ITEMS = [
@@ -94,6 +122,14 @@ export const STORE_ITEMS = [
     cost: 5000,
     icon: "Key",
     type: "key"
+  },
+  { 
+    id: "royal_pardon", 
+    name: "Royal Pardon", 
+    description: "A decree from the Monarch that instantly clears any active penalty. Single use.",
+    cost: 1500,
+    icon: "ShieldAlert",
+    type: "consumable"
   }
 ];
 

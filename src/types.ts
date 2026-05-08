@@ -60,6 +60,12 @@ export interface UserStats {
   penaltyAssignedAt?: string;
   activeTitle?: string;
   titles?: string[];
+  pardonTickets?: number;
+  pardonGifted?: boolean;
+  height?: number;
+  weight?: number;
+  bloodType?: string;
+  ultimateGoal?: string;
 }
 
 export interface StoreItem {

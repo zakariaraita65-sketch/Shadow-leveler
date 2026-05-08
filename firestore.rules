@@ -15,8 +15,12 @@ service cloud.firestore {
       return isSignedIn() && request.auth.token.email_verified == true;
     }
 
+    function isVerified() {
+      return isSignedIn() && (request.auth.token.email_verified == true || request.auth.token.firebase.sign_in_provider == 'anonymous');
+    }
+
     function isOwner(userId) {
-      return isSignedIn() && request.auth.uid == userId;
+      return isVerified() && request.auth.uid == userId;
     }
 
     function isValidId(id) {
@@ -42,12 +46,24 @@ service cloud.firestore {
         && data.gold is number
         && data.streak is number
         && data.lastActive is string
-        && (!('gender' in data) || data.gender == 'male' || data.gender == 'female')
+        && (!('pardonTickets' in data) || data.pardonTickets is number)
+        && (!('gender' in data) || data.gender in ['male', 'female'])
         && (!('age' in data) || data.age is number)
+        && (!('height' in data) || data.height is number)
+        && (!('weight' in data) || data.weight is number)
+        && (!('bloodType' in data) || data.bloodType is string)
+        && (!('ultimateGoal' in data) || data.ultimateGoal is string)
+        && (!('displayName' in data) || data.displayName is string)
+        && (!('photoURL' in data) || data.photoURL is string)
         && (!('penaltyActive' in data) || data.penaltyActive is bool)
-        && (!('penaltyReason' in data) || data.penaltyReason is string)
-        && (!('penaltyAssignedAt' in data) || data.penaltyAssignedAt is string)
-        && (!('penaltyDeadline' in data) || data.penaltyDeadline is string);
+        && (!('penaltyReason' in data) || data.penaltyReason == null || data.penaltyReason is string)
+        && (!('penaltyAssignedAt' in data) || data.penaltyAssignedAt == null || data.penaltyAssignedAt is string)
+        && (!('penaltyDeadline' in data) || data.penaltyDeadline == null || data.penaltyDeadline is string)
+        && (!('activeTitle' in data) || data.activeTitle is string)
+        && (!('titles' in data) || data.titles is list)
+        && (!('pardonGifted' in data) || data.pardonGifted is bool)
+        && (!('totalFocusTime' in data) || data.totalFocusTime is number)
+        && (!('completedQuests' in data) || data.completedQuests is number);
     }
 
     function isValidQuest(data, userId) {
@@ -78,11 +94,13 @@ service cloud.firestore {
       allow get: if isOwner(userId);
       allow create: if isOwner(userId) && isValidUserStats(incoming());
       allow update: if isOwner(userId) && isValidUserStats(incoming()) && (
-        // Simple updates for now, restricting immutable fields would be better but let's stick to the flow
+        // Action-based updates
         incoming().diff(existing()).affectedKeys().hasOnly([
           'rank', 'level', 'exp', 'maxExp', 'gold', 'streak', 'lastActive', 
           'totalFocusTime', 'completedQuests', 'displayName', 'photoURL',
-          'penaltyActive', 'penaltyReason', 'penaltyDeadline', 'penaltyAssignedAt'
+          'penaltyActive', 'penaltyReason', 'penaltyDeadline', 'penaltyAssignedAt',
+          'activeTitle', 'titles', 'pardonTickets', 'pardonGifted',
+          'height', 'weight', 'bloodType', 'ultimateGoal', 'gender', 'age'
         ])
       );
 

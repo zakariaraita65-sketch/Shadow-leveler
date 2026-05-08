@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Shield, 
@@ -12,7 +12,8 @@ import {
   Clock, 
   BarChart3,
   Bell,
-  ShoppingBag
+  ShoppingBag,
+  User as UserIcon
 } from 'lucide-react';
 
 import { 
@@ -41,6 +42,7 @@ import FocusTimer from './components/FocusTimer';
 import SkillTree from './components/SkillTree';
 import StoreSection from './components/StoreSection';
 import RankSection from './components/RankSection';
+import ProfileView from './components/ProfileView';
 import QuotesSection from './components/QuotesSection';
 import SystemMessage from './components/SystemMessage';
 import AddQuestModal from './components/AddQuestModal';
@@ -62,9 +64,10 @@ export default function App() {
   
   const [notifications, setNotifications] = useState<{ id: number; text: string; type?: any }[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'quests' | 'skills' | 'timer' | 'store' | 'ranks'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'quests' | 'skills' | 'timer' | 'store' | 'ranks' | 'profile'>('dashboard');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isTitleModalOpen, setIsTitleModalOpen] = useState(false);
+  const hasCheckedPenalty = useRef(false);
 
   // --- AUTH LISTENERS ---
   useEffect(() => {
@@ -108,6 +111,7 @@ export default function App() {
       gender: data.gender,
       age: data.age,
       photoURL: user.photoURL || "",
+      lastActive: new Date().toISOString(), // Ensure fresh start
     };
 
     try {
@@ -126,9 +130,19 @@ export default function App() {
     if (!user) return;
 
     // Listen for stats
-    const statsUnsub = onSnapshot(doc(db, 'users', user.uid), (snap) => {
+    const statsUnsub = onSnapshot(doc(db, 'users', user.uid), async (snap) => {
       if (snap.exists()) {
-        setStats(snap.data() as UserStats);
+        const data = snap.data() as UserStats;
+        setStats(data);
+        
+        // Award one-time pardon ticket if missing (for existing users)
+        if (data.pardonTickets === undefined || (data.pardonTickets === 0 && !(data as any).pardonGifted)) {
+           await updateDoc(doc(db, 'users', user.uid), { 
+             pardonTickets: (data.pardonTickets || 0) + 1,
+             pardonGifted: true 
+           });
+           notify("MONARCH'S GIFT: 1 Royal Pardon Ticket granted.", "success");
+        }
       }
     }, (err) => handleFirestoreError(err, OperationType.GET, `users/${user.uid}`));
 
@@ -163,15 +177,40 @@ export default function App() {
 
   // --- PENALTY CHECK ---
   useEffect(() => {
-    if (!user || loading) return;
+    if (!user || loading || stats.penaltyActive || showOnboarding || hasCheckedPenalty.current) return;
 
     const checkPenalty = async () => {
+      // Ensure we have loaded real stats from DB (not just initial state)
+      // Check for a specific field that only exists in the DB or is updated after onboarding
+      if (!stats.lastActive || showOnboarding) return;
+
       const now = new Date();
       const last = new Date(stats.lastActive);
+      
+      // If the profile was created less than 10 minutes ago, skip any penalty checks
+      // This prevents issues where stale module-level INITIAL_STATS dates trigger penalties
+      const accountAgeMs = now.getTime() - last.getTime();
+      if (accountAgeMs < 10 * 60 * 1000) return;
+
+      // Mark as truly checked for this session
+      hasCheckedPenalty.current = true;
+
       const diffMs = now.getTime() - last.getTime();
       const diffHours = diffMs / (1000 * 60 * 60);
 
       const userRef = doc(db, 'users', user.uid);
+
+      // NO INACTIVITY PENALTIES FOR NOVICES (Below Level 2)
+      if (stats.level < 2) {
+        // Still update lastActive so we don't keep checking
+        if (diffHours > 1) {
+            await updateDoc(userRef, { lastActive: now.toISOString() });
+        }
+        return;
+      }
+
+      // Only run checks if some time has passed since last activity (e.g., at least 1 hour)
+      if (diffHours < 1) return;
 
       if (diffHours > 48) {
         await updateDoc(userRef, {
@@ -187,25 +226,34 @@ export default function App() {
         // If daily quests were not finished, trigger penalty
         const unfinishedDailies = quests.filter(q => q.type === 'daily' && !q.completed);
         if (unfinishedDailies.length > 0) {
+          // Mark unfinished dailies as failed so they don't trigger again
+          for (const q of unfinishedDailies) {
+             await updateDoc(doc(db, 'users', user.uid, 'quests', q.id), {
+               status: 'failed',
+               completed: false
+             });
+          }
+
           await updateDoc(userRef, {
             penaltyActive: true,
             penaltyReason: "INCOMPLETE DAILY MISSIONS",
-            penaltyDeadline: new Date(now.getTime() + 12 * 60 * 60 * 1000).toISOString()
+            penaltyDeadline: new Date(now.getTime() + 12 * 60 * 60 * 1000).toISOString(),
+            lastActive: now.toISOString()
           });
           notify("PENALTY MISSION ACTIVATED: MISSION FAILURE", "danger");
+        } else {
+          await updateDoc(userRef, { 
+            streak: stats.streak + 1,
+            lastActive: now.toISOString() 
+          });
+          notify("DAILY SESSION INITIALIZED", "info");
         }
-
-        await updateDoc(userRef, { 
-          streak: stats.streak + 1,
-          lastActive: now.toISOString() 
-        });
-        notify("DAILY SESSION INITIALIZED", "info");
       }
     };
 
     checkPenalty();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, loading]); 
+  }, [user, loading, quests.length, stats.penaltyActive, stats.lastActive]); 
 
   // --- HELPERS ---
   const notify = useCallback((text: string, type: any = 'info') => {
@@ -246,7 +294,8 @@ export default function App() {
         level: newLevel, 
         rank: newRank, 
         maxExp: newMaxExp,
-        gold: stats.gold + goldEarned
+        gold: stats.gold + goldEarned,
+        lastActive: new Date().toISOString()
       });
     } catch (err) { handleFirestoreError(err, OperationType.UPDATE, `users/${user.uid}`); }
 
@@ -288,7 +337,8 @@ export default function App() {
         speak('MISSION COMPLETED. EXPERENCE GAINED.');
         const newCompletedCount = stats.completedQuests + 1;
         await updateDoc(doc(db, 'users', user.uid), { 
-          completedQuests: newCompletedCount 
+          completedQuests: newCompletedCount,
+          lastActive: new Date().toISOString()
         });
         
         // Specific Title Check for Hard Quests
@@ -317,6 +367,7 @@ export default function App() {
         status: 'active',
         startedAt: new Date().toISOString()
       });
+      await updateDoc(doc(db, 'users', user.uid), { lastActive: new Date().toISOString() });
       notify('MISSION ACTIVATED', 'info');
       speak('MISSION START. TIME IS RUNNING.');
     } catch (err) {
@@ -344,9 +395,10 @@ export default function App() {
           const diffStr = questExpReward > 100 ? "hard" : "easy";
           const response = await ai.models.generateContent({
               model: 'gemini-3-flash-preview',
-              contents: `The user failed a quest called "${questTitle}" with difficulty "${diffStr}". 
-              Generate a creative, difficult, and constructive penalty task for them. 
-              It MUST be one of these types: Religious (e.g. read Quran, pray specific Rakats), Physical (e.g. 100 pushups, hold plank), or Academic (e.g. read a book for 30 mins).
+              contents: `The user failed a mission called "${questTitle}" with difficulty "${diffStr}". 
+              Generate a constructive, academic, or study-related penalty task. 
+              EXAMPLES: "Complete the failed mission '${questTitle}' plus another similar mission", "Solve 20 complex problems and read 15 pages of a textbook", "Summarize an entire academic chapter in 300 words".
+              PRIORITIZE tasks related to studying, finishing missed work, and academic discipline.
               Respond ONLY with the penalty task description. Do not categorize or explain it. Keep it under 2 sentences.`
           });
           if (response.text) {
@@ -396,7 +448,8 @@ export default function App() {
     addExp(minutes * 10);
     if (user) {
       updateDoc(doc(db, 'users', user.uid), { 
-        totalFocusTime: stats.totalFocusTime + minutes 
+        totalFocusTime: stats.totalFocusTime + minutes,
+        lastActive: new Date().toISOString()
       });
     }
     const msg = 'FOCUS TRAINING COMPLETE: MANA REPLENISHED';
@@ -418,6 +471,12 @@ export default function App() {
           notify('STREAK RESTORED VIA RECOVERY POTION', 'info');
           speak('POTION CONSUMED. STREAK RESTORED.');
         }
+
+        if (item.id === 'royal_pardon') {
+          await updateDoc(doc(db, 'users', user.uid), { pardonTickets: (stats.pardonTickets || 0) + 1 });
+          notify('ROYAL PARDON GRANTED: TICKET ADDED TO INVENTORY', 'success');
+          speak('ROYAL PARDON ACQUIRED. YOU MAY NOW BYPASS ONE PENALTY PROTOCOL.');
+        }
       } catch (err) { handleFirestoreError(err, OperationType.UPDATE, `users/${user.uid}`); }
     } else {
       notify('INSUFFICIENT GOLD', 'danger');
@@ -432,10 +491,12 @@ export default function App() {
   const handleClearPenalty = async () => {
     if (!user) return;
     try {
+      const now = new Date().toISOString();
       await updateDoc(doc(db, 'users', user.uid), {
         penaltyActive: false,
         penaltyReason: "",
-        penaltyDeadline: ""
+        penaltyDeadline: "",
+        lastActive: now
       });
       notify("PENALTY SURVIVED: MATRIX RESTORED", "success");
       speak("PENALTY QUEST COMPLETED. SYSTEM RESTORED TO NORMAL.");
@@ -458,7 +519,51 @@ export default function App() {
     } catch (err) { handleFirestoreError(err, OperationType.UPDATE, `users/${user.uid}`); }
   };
 
+  const handleUpdateUserStats = async (newStats: Partial<UserStats>) => {
+    if (!user) return;
+    try {
+      const updatedData = {
+        ...newStats,
+        lastActive: new Date().toISOString()
+      };
+      await updateDoc(doc(db, 'users', user.uid), updatedData);
+      notify("USER DNA UPDATED", "success");
+      speak("SYSTEM DATA SYNCHRONIZED. YOUR DNA HAS BEEN RECODED.");
+    } catch (err) {
+      handleFirestoreError(err, OperationType.UPDATE, `users/${user.uid}`);
+    }
+  };
+
   const handleLogout = () => signOut(auth);
+
+  const [isPardoning, setIsPardoning] = useState(false);
+  const handlePardon = async () => {
+    if (!user || isPardoning) return;
+    if ((stats.pardonTickets || 0) <= 0) {
+        notify("ERROR: YOU DO NOT HAVE A ROYAL PARDON TICKET", "danger");
+        speak("ACCESS DENIED. NO PARDON TICKET DETECTED.");
+        return;
+    }
+
+    try {
+        setIsPardoning(true);
+        const now = new Date().toISOString();
+        await updateDoc(doc(db, 'users', user.uid), {
+            penaltyActive: false,
+            penaltyReason: null,
+            penaltyDeadline: null,
+            penaltyAssignedAt: null,
+            pardonTickets: stats.pardonTickets - 1,
+            lastActive: now
+        });
+        notify("ROYAL PARDON GRANTED: Penalty cleared.", "success");
+        speak("THE MONARCH HAS BEEN PARDONED. CONTINUE YOUR MISSION.");
+    } catch (err) {
+        handleFirestoreError(err, OperationType.UPDATE, `users/${user.uid}`);
+    } finally {
+        setIsPardoning(false);
+    }
+  };
 
   const checkAndAwardTitles = async (level: number, completedCount: number, lastExp: number, isHard: boolean = false) => {
     if (!user) return;
@@ -565,6 +670,7 @@ export default function App() {
 
             <div className="flex flex-col gap-2 flex-1">
               <NavItem active={activeTab === 'dashboard'} icon={<LayoutDashboard size={20}/>} label="Dashboard" onClick={() => setActiveTab('dashboard')} />
+              <NavItem active={activeTab === 'profile'} icon={<UserIcon size={20}/>} label="User DNA" onClick={() => setActiveTab('profile')} />
               <NavItem active={activeTab === 'quests'} icon={<Swords size={20}/>} label="Missions" onClick={() => setActiveTab('quests')} />
               <NavItem active={activeTab === 'skills'} icon={<Sparkles size={20}/>} label="Skill Matrix" onClick={() => setActiveTab('skills')} />
               <NavItem active={activeTab === 'timer'} icon={<Clock size={18}/>} label="Focus Chamber" onClick={() => setActiveTab('timer')} />
@@ -675,6 +781,10 @@ export default function App() {
                 <RankSection level={stats.level} rank={stats.rank} exp={stats.exp} maxExp={stats.maxExp} />
               )}
 
+              {activeTab === 'profile' && (
+                <ProfileView stats={stats} skills={skills} questCount={quests.length} onUpdateStats={handleUpdateUserStats} />
+              )}
+
               {activeTab === 'timer' && (
                 <div className="max-w-2xl mx-auto w-full pt-10">
                    <FocusTimer onFocusComplete={handleFocusComplete} />
@@ -728,11 +838,40 @@ export default function App() {
                />
 
                <div className="flex flex-col gap-4 mt-2 border-t border-white/10 pt-4">
+                  <div className="flex flex-col gap-1">
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handlePardon();
+                        }}
+                        disabled={(stats.pardonTickets || 0) <= 0 || isPardoning}
+                        className={`
+                            w-full py-3 font-display font-bold italic tracking-tighter transition-all rounded-xl border flex items-center justify-center gap-2
+                            ${(stats.pardonTickets || 0) > 0 
+                                ? 'bg-system-neon/10 border-system-neon/30 text-system-neon hover:bg-system-neon/20 shadow-[0_0_15px_rgba(34,211,238,0.2)]' 
+                                : 'bg-white/5 border-white/5 text-white/20 cursor-not-allowed'}
+                        `}
+                      >
+                        {isPardoning ? (
+                            <><Clock size={16} className="animate-spin" /> EXECUTING...</>
+                        ) : (
+                            <>REQUEST ROYAL PARDON / العفو الملكي</>
+                        )}
+                      </button>
+                      <span className="text-[9px] font-mono text-white/30 uppercase">
+                          Inventory: {stats.pardonTickets || 0} Tickets / التذاكر المتوفرة: {stats.pardonTickets || 0}
+                      </span>
+                  </div>
+                  {(stats.pardonTickets || 0) <= 0 && (
+                      <p className="text-[10px] text-system-danger/60 font-mono uppercase mt-1 italic">
+                          No tickets in system inventory. You must complete the task or accept failure.
+                      </p>
+                  )}
                   <button 
                     onClick={handlePenaltyFailure}
-                    className="w-full py-3 border border-white/10 text-white/40 font-mono text-[10px] uppercase hover:text-system-danger transition-colors mt-4"
+                    className="w-full py-2 border border-white/10 text-white/40 font-mono text-[9px] uppercase hover:text-system-danger transition-colors mt-2"
                   >
-                    Accept Failure (Level -1)
+                    Accept Total Failure (Level -1) / قبول الفشل
                   </button>
                </div>
             </div>

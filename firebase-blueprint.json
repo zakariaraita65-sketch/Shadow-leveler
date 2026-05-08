@@ -20,9 +20,17 @@
         "age": { "type": "integer" },
         "penaltyActive": { "type": "boolean" },
         "penaltyReason": { "type": "string" },
-        "penaltyDeadline": { "type": "string", "format": "date-time" }
+        "penaltyDeadline": { "type": "string", "format": "date-time" },
+        "activeTitle": { "type": "string" },
+        "titles": { "type": "array", "items": { "type": "string" } },
+        "pardonTickets": { "type": "integer" },
+        "pardonGifted": { "type": "boolean" },
+        "height": { "type": "number" },
+        "weight": { "type": "number" },
+        "bloodType": { "type": "string" },
+        "ultimateGoal": { "type": "string" }
       },
-      "required": ["rank", "level", "exp", "maxExp", "gold", "streak", "lastActive"]
+      "required": ["rank", "level", "exp", "maxExp", "gold", "streak", "lastActive", "pardonTickets"]
     },
     "Quest": {
       "title": "Quest",
