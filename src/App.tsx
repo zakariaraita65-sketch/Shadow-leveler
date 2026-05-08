@@ -537,6 +537,54 @@ export default function App() {
   const handleLogout = () => signOut(auth);
 
   const [isPardoning, setIsPardoning] = useState(false);
+  const [isSacrificing, setIsSacrificing] = useState(false);
+
+  const handleSacrificeExp = async () => {
+    if (!user || isSacrificing) return;
+    
+    try {
+        setIsSacrificing(true);
+        const now = new Date().toISOString();
+        
+        // Calculate new EXP and Level
+        let newExp = stats.exp - 200;
+        let newLevel = stats.level;
+        let newMaxExp = stats.maxExp;
+
+        if (newExp < 0) {
+            if (newLevel > 1) {
+                newLevel -= 1;
+                // Simple level down: reset to 50% of previous level's max or similar
+                // For now, let's just reset exp to 0 if they level down, or 
+                // calculate based on old maxExp. 
+                // Let's keep it simple: drop level, set exp to 0.
+                newExp = 0;
+                newMaxExp = 100 * Math.pow(1.2, newLevel - 1);
+            } else {
+                newExp = 0;
+            }
+        }
+
+        await updateDoc(doc(db, 'users', user.uid), {
+            penaltyActive: false,
+            penaltyReason: null,
+            penaltyDeadline: null,
+            penaltyAssignedAt: null,
+            exp: newExp,
+            level: newLevel,
+            maxExp: newMaxExp,
+            lastActive: now
+        });
+
+        notify("DATA SACRIFICED: 200 EXP LOST. PENALTY CLEARED.", "warning");
+        speak("DATA PARTITION PURGED. SYSTEM RESTORED AT A COST.");
+    } catch (err) {
+        handleFirestoreError(err, OperationType.UPDATE, `users/${user.uid}`);
+    } finally {
+        setIsSacrificing(false);
+    }
+  };
+
   const handlePardon = async () => {
     if (!user || isPardoning) return;
     if ((stats.pardonTickets || 0) <= 0) {
@@ -838,6 +886,26 @@ export default function App() {
                />
 
                <div className="flex flex-col gap-4 mt-2 border-t border-white/10 pt-4">
+                  <div className="flex flex-col gap-1">
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleSacrificeExp();
+                        }}
+                        disabled={isSacrificing}
+                        className="w-full py-3 font-display font-bold italic tracking-tighter transition-all rounded-xl border border-orange-500/30 bg-orange-500/10 text-orange-400 hover:bg-orange-500/20 shadow-[0_0_15px_rgba(249,115,22,0.1)] flex items-center justify-center gap-2"
+                      >
+                         {isSacrificing ? (
+                            <><Clock size={16} className="animate-spin" /> PURGING DATA...</>
+                        ) : (
+                            <>SACRIFICE DATA (-200 EXP) / تضحية بالخبرة</>
+                        )}
+                      </button>
+                      <span className="text-[9px] font-mono text-white/30 uppercase">
+                          Current EXP: {Math.floor(stats.exp)} / {Math.floor(stats.maxExp)}
+                      </span>
+                  </div>
+
                   <div className="flex flex-col gap-1">
                       <button 
                         onClick={(e) => {
