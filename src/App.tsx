@@ -661,8 +661,21 @@ export default function App() {
   // --- RENDER ---
   if (loading) {
     return (
-      <div className="min-h-screen bg-system-bg flex items-center justify-center">
-        <div className="w-12 h-12 border-4 border-system-neon border-t-transparent rounded-full animate-spin" />
+      <div className="min-h-screen bg-system-bg flex flex-col items-center justify-center p-6 text-center">
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="flex flex-col items-center gap-6"
+        >
+          <div className="relative">
+             <div className="w-16 h-16 border-4 border-system-neon/20 border-t-system-neon rounded-full animate-spin" />
+             <Shield size={32} className="absolute inset-0 m-auto text-system-neon animate-pulse" />
+          </div>
+          <div className="flex flex-col gap-1">
+             <h2 className="text-xl font-display font-bold italic tracking-wider text-white">SYNCING WITH MATRIX</h2>
+             <span className="text-[10px] font-mono text-system-neon/60 uppercase tracking-[0.3em]">Establishing Secure Link...</span>
+          </div>
+        </motion.div>
       </div>
     );
   }

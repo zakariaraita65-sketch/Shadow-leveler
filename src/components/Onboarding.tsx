@@ -41,8 +41,8 @@ export default function Onboarding({ user, onComplete }: OnboardingProps) {
           <div className="w-16 h-16 rounded-full bg-system-neon/20 flex items-center justify-center text-system-neon system-glow mb-2">
             <Shield size={32} />
           </div>
-          <span className="text-[10px] font-mono text-system-neon tracking-[0.4em] uppercase font-bold text-center">New Hunter Detected</span>
-          <h2 className="text-3xl font-display font-black italic tracking-tighter text-center">INITIALIZE PROFILE</h2>
+          <span className="text-[10px] font-mono text-system-neon tracking-[0.4em] uppercase font-bold text-center">New Hunter Detected / تم اكتشاف صياد جديد</span>
+          <h2 className="text-3xl font-display font-black italic tracking-tighter text-center uppercase">Initialize Profile / إنشاء الملف الشخصي</h2>
           <p className="text-white/40 text-xs font-mono uppercase tracking-widest text-center">"Provide your core attributes to synchronize with the System Matrix."</p>
         </div>
 
@@ -53,14 +53,14 @@ export default function Onboarding({ user, onComplete }: OnboardingProps) {
                onClick={() => signOut(auth)}
                className="text-white/50 hover:text-system-neon flex items-center gap-2 text-xs font-mono uppercase transition-colors"
             >
-              <ArrowLeft size={14} /> Go Back (Sign Out)
+              <ArrowLeft size={14} /> Go Back (Sign Out) / العودة (تسجيل الخروج)
             </button>
           </div>
 
           {/* Display Name */}
           <div className="flex flex-col gap-2">
             <label className="flex items-center gap-2 text-xs font-mono text-white/50 uppercase tracking-widest">
-              <UserCircle size={14} className="text-system-neon" /> Hunter Name
+              <UserCircle size={14} className="text-system-neon" /> Hunter Name / اسم الصياد
             </label>
             <input
               type="text"
@@ -68,7 +68,7 @@ export default function Onboarding({ user, onComplete }: OnboardingProps) {
               value={formData.displayName}
               onChange={(e) => setFormData({ ...formData, displayName: e.target.value })}
               className="w-full bg-white/5 border border-white/10 rounded-lg py-3 px-4 focus:border-system-neon focus:ring-1 focus:ring-system-neon outline-none transition-all font-display text-lg"
-              placeholder="Enter your name..."
+              placeholder="Enter your name... / أدخل اسمك..."
             />
           </div>
 
@@ -76,7 +76,7 @@ export default function Onboarding({ user, onComplete }: OnboardingProps) {
             {/* Gender */}
             <div className="flex flex-col gap-2">
               <label className="flex items-center gap-2 text-xs font-mono text-white/50 uppercase tracking-widest">
-                <Users size={14} className="text-system-neon" /> Gender
+                <Users size={14} className="text-system-neon" /> Gender / الجنس
               </label>
               <div className="flex gap-2">
                 <button
@@ -88,7 +88,7 @@ export default function Onboarding({ user, onComplete }: OnboardingProps) {
                       : "bg-white/5 border-white/10 text-white/40"
                   }`}
                 >
-                  MALE
+                  MALE / ذكر
                 </button>
                 <button
                   type="button"
@@ -99,7 +99,7 @@ export default function Onboarding({ user, onComplete }: OnboardingProps) {
                       : "bg-white/5 border-white/10 text-white/40"
                   }`}
                 >
-                  FEMALE
+                  FEMALE / أنثى
                 </button>
               </div>
             </div>
@@ -107,7 +107,7 @@ export default function Onboarding({ user, onComplete }: OnboardingProps) {
             {/* Age */}
             <div className="flex flex-col gap-2">
               <label className="flex items-center gap-2 text-xs font-mono text-white/50 uppercase tracking-widest">
-                <Calendar size={14} className="text-system-neon" /> Hunter Age
+                <Calendar size={14} className="text-system-neon" /> Hunter Age / العمر
               </label>
               <input
                 type="number"
@@ -125,7 +125,7 @@ export default function Onboarding({ user, onComplete }: OnboardingProps) {
             type="submit"
             className="mt-6 w-full py-4 bg-system-neon text-system-bg font-display font-black uppercase rounded-lg hover:scale-[1.02] active:scale-95 transition-all shadow-xl system-glow"
           >
-            Sychronize with Matrix
+            Synchronize with Matrix / تزامن مع النظام
           </button>
         </form>
 
