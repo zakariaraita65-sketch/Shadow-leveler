@@ -29,14 +29,16 @@ import { UserStats, Rank } from '../types';
 import { RANK_ORDER, RANK_TITLES, AVAILABLE_TITLES, DIFFICULTY_COLORS } from '../constants';
 
 interface ProfileViewProps {
+  userId: string;
   stats: UserStats;
   skills: Record<string, any>;
   questCount: number;
   onUpdateStats: (newStats: Partial<UserStats>) => Promise<void>;
 }
 
-export default function ProfileView({ stats, skills, questCount, onUpdateStats }: ProfileViewProps) {
+export default function ProfileView({ userId, stats, skills, questCount, onUpdateStats }: ProfileViewProps) {
   const [isEditing, setIsEditing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [editData, setEditData] = useState({
     displayName: stats.displayName || "",
     age: stats.age || 0,
@@ -61,15 +63,33 @@ export default function ProfileView({ stats, skills, questCount, onUpdateStats }
   };
   
   const handleSave = async () => {
-    // Sanitize numeric data to prevent NaN in Firestore
-    const sanitizedData = {
-      ...editData,
-      age: isNaN(editData.age) ? 0 : editData.age,
-      height: isNaN(editData.height) ? 0 : editData.height,
-      weight: isNaN(editData.weight) ? 0 : editData.weight
-    };
-    await onUpdateStats(sanitizedData);
-    setIsEditing(false);
+    try {
+      setIsSaving(true);
+      // Sanitize numeric data to prevent NaN in Firestore
+      const sanitizedData = {
+        ...editData,
+        age: isNaN(editData.age) ? 0 : editData.age,
+        height: isNaN(editData.height) ? 0 : editData.height,
+        weight: isNaN(editData.weight) ? 0 : editData.weight
+      };
+
+      // Determine if profile is complete (Name, Age, Height, Weight, Gender)
+      const isComplete = !!sanitizedData.displayName && 
+                         sanitizedData.age > 0 && 
+                         sanitizedData.height > 0 && 
+                         sanitizedData.weight > 0 && 
+                         !!sanitizedData.gender;
+
+      await onUpdateStats({
+        ...sanitizedData,
+        isProfileComplete: isComplete
+      });
+      setIsEditing(false);
+    } catch (error) {
+      console.error("Failed to save profile:", error);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const currentRank = stats.rank || Rank.E;
@@ -130,15 +150,29 @@ export default function ProfileView({ stats, skills, questCount, onUpdateStats }
                   className="bg-white/10 border border-white/20 rounded px-2 py-1 text-2xl font-display font-black italic uppercase text-white"
                 />
               ) : (
-                <h1 className="text-3xl font-display font-black italic uppercase tracking-tighter">
-                  {stats.displayName || "ANONYMOUS UNIT"}
-                </h1>
+                <div className="flex flex-col">
+                  <h1 className="text-3xl font-display font-black italic uppercase tracking-tighter">
+                    {stats.displayName || "ANONYMOUS UNIT"}
+                  </h1>
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="text-[10px] font-mono text-system-neon/70 bg-system-neon/5 px-2 py-0.5 rounded border border-system-neon/10 tracking-widest">
+                      HUNTER LICENSE ID: #{userId.substring(0, 8).toUpperCase()}
+                    </span>
+                  </div>
+                </div>
               )}
               <button 
                 onClick={() => isEditing ? handleSave() : handleEdit()}
-                className="p-2 bg-white/5 hover:bg-white/10 rounded-full transition-colors border border-white/10"
+                disabled={isSaving}
+                className="p-2 bg-white/5 hover:bg-white/10 rounded-full transition-colors border border-white/10 disabled:opacity-50"
               >
-                {isEditing ? <Check size={16} className="text-green-400" /> : <Edit3 size={16} className="text-white/40" />}
+                {isSaving ? (
+                  <div className="w-4 h-4 border-2 border-system-neon/20 border-t-system-neon rounded-full animate-spin" />
+                ) : isEditing ? (
+                  <Check size={16} className="text-green-400" />
+                ) : (
+                  <Edit3 size={16} className="text-white/40" />
+                )}
               </button>
             </div>
             

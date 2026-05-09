@@ -3,6 +3,7 @@ import { motion } from 'motion/react';
 import { Check, Info } from 'lucide-react';
 import { Rank } from '../types';
 import { RANK_ORDER } from '../constants';
+import { Leaderboard } from './Leaderboard';
 
 interface RankSectionProps {
   level: number;
@@ -184,17 +185,7 @@ export default function RankSection({ level, rank, exp, maxExp }: RankSectionPro
       )}
 
       {activeTab === 'leaderboard' && (
-        <motion.div
-           initial={{ opacity: 0, scale: 0.95 }}
-           animate={{ opacity: 1, scale: 1 }}
-           className="p-10 system-border bg-system-card/40 rounded-3xl flex flex-col items-center justify-center gap-4 text-center mt-10"
-        >
-           <Info className="text-system-neon opacity-50" size={32} />
-           <h3 className="text-xl font-display font-bold text-white">Leaderboard Offline</h3>
-           <p className="text-white/40 text-sm max-w-sm">
-              The Hunter Guild's global ranking system is currently synchronizing. Reach a higher rank to participate in regional leaderboards.
-           </p>
-        </motion.div>
+        <Leaderboard />
       )}
     </div>
   );

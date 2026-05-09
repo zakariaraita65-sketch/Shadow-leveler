@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { Timer, Play, Pause, RotateCcw, Target, Volume2, VolumeX } from "lucide-react";
 
 const AMBIENT_SOUNDS = [
-  { id: 'rain', name: 'Rain', url: 'https://actions.google.com/sounds/v1/weather/rain_heavy_loud.ogg' },
+  { id: 'drops', name: 'Water Drops', url: 'https://actions.google.com/sounds/v1/water/water_drips.ogg' },
   { id: 'ocean', name: 'Ocean Waves', url: 'https://actions.google.com/sounds/v1/water/waves_crashing_on_rock_beach.ogg' },
   { id: 'wind', name: 'Wind', url: 'https://actions.google.com/sounds/v1/weather/wind.ogg' },
   { id: 'thunder', name: 'Thunderstorm', url: 'https://actions.google.com/sounds/v1/weather/thunderstorm.ogg' },
@@ -83,11 +83,6 @@ export default function FocusTimer({ onFocusComplete, onStart }: FocusTimerProps
       {/* Hidden audio element */}
       <audio ref={audioRef} src={selectedSound.url} loop className="hidden" />
 
-      {/* HUD Label */}
-      <div className="absolute top-0 right-0 p-2 text-[8px] font-mono text-system-neon/30 uppercase tracking-widest border-l border-b border-system-neon/20">
-        Chronos-Interface v1.0
-      </div>
-
       <div className="flex flex-col items-center gap-2 z-10 w-full">
         <span className={`text-[10px] font-mono uppercase tracking-[0.3em] font-bold ${mode === 'focus' ? 'text-system-neon' : 'text-purple-400'}`}>
           {mode === "focus" ? "Active Hunt: Focus Mode" : "Rest Period: Mana Regeneration"}
@@ -152,10 +147,59 @@ export default function FocusTimer({ onFocusComplete, onStart }: FocusTimerProps
         </button>
       </div>
 
-      {/* Progress Ring Background */}
-      <div className="absolute -z-10 w-full h-full opacity-10 flex items-center justify-center pointer-events-none">
-         <div className={`w-64 h-64 border-4 rounded-full border-dashed animate-spin-slow ${mode === 'focus' ? 'border-system-neon' : 'border-system-purple'}`} />
+      {/* Aurora Borealis Effect (Northern Lights) - Fluid Style */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden -z-10 transition-opacity duration-1000">
+        <div className="absolute inset-0 opacity-40 blur-[100px] transform-gpu">
+           {/* Fluid Wave 1 (Main Cyan) */}
+           <motion.div 
+             animate={{ 
+               x: isActive ? ['-20%', '10%', '-15%', '5%'] : '0%',
+               y: isActive ? ['10%', '40%', '20%', '35%'] : '25%',
+               scale: isActive ? [1, 1.2, 1.1, 1.3] : 1,
+               rotate: isActive ? [-15, -10, -20, -15] : -15
+             }}
+             transition={{ duration: 20, repeat: Infinity, ease: "easeInOut" }}
+             className="absolute top-0 left-[-20%] w-[140%] h-[40%] bg-gradient-to-r from-transparent via-system-neon/40 to-transparent rounded-[100%] mix-blend-screen"
+           />
+           
+           {/* Fluid Wave 2 (Deep Blue/Grey) */}
+           <motion.div 
+             animate={{ 
+               x: isActive ? ['10%', '-20%', '5%', '-10%'] : '0%',
+               y: isActive ? ['30%', '10%', '25%', '15%'] : '20%',
+               scale: isActive ? [1.1, 0.9, 1.2, 1] : 1,
+               rotate: isActive ? [10, 20, 5, 15] : 15
+             }}
+             transition={{ duration: 25, repeat: Infinity, ease: "easeInOut", delay: 2 }}
+             className="absolute top-0 left-[-20%] w-[140%] h-[35%] bg-gradient-to-r from-transparent via-cyan-900/30 to-transparent rounded-[100%] mix-blend-multiply"
+           />
+
+           {/* Fluid Wave 3 (Bright Highlights/White) */}
+           <motion.div 
+             animate={{ 
+               x: isActive ? ['-5%', '15%', '-10%', '0%'] : '0%',
+               y: isActive ? ['20%', '45%', '15%', '30%'] : '30%',
+               opacity: isActive ? [0.3, 0.6, 0.4, 0.5] : 0.2
+             }}
+             transition={{ duration: 15, repeat: Infinity, ease: "easeInOut", delay: 5 }}
+             className="absolute top-0 left-[-20%] w-[140%] h-[20%] bg-gradient-to-r from-transparent via-white/10 to-transparent rounded-[100%] rotate-[-5deg] mix-blend-overlay"
+           />
+
+           {/* Core Glow Center */}
+           <motion.div 
+             animate={{ 
+               scale: isActive ? [1, 1.1, 1] : 1,
+               opacity: isActive ? [0.2, 0.4, 0.2] : 0.1
+             }}
+             transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
+             className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80%] h-[40%] bg-system-neon/20 rounded-full blur-[120px]"
+           />
+        </div>
+        
+        {/* Ambient Bottom Gradient */}
+        <div className={`absolute bottom-0 left-0 right-0 h-1/2 bg-gradient-to-t from-system-neon/15 via-transparent to-transparent transition-opacity duration-1000 ${isActive ? 'opacity-100' : 'opacity-30'}`} />
       </div>
     </div>
+
   );
 }

@@ -26,7 +26,7 @@ export default function QuotesSection() {
         
         <div className="flex flex-col gap-3">
           <span className="text-[10px] font-mono text-system-neon/50 uppercase tracking-[0.2em] font-bold">
-            System Message: Ancient Scholar Wisdom
+            System Message: Legendary Monarch Wisdom
           </span>
           
           <motion.div

@@ -20,7 +20,7 @@ service cloud.firestore {
     }
 
     function isOwner(userId) {
-      return isVerified() && request.auth.uid == userId;
+      return isSignedIn() && request.auth.uid == userId;
     }
 
     function isValidId(id) {
@@ -63,7 +63,8 @@ service cloud.firestore {
         && (!('titles' in data) || data.titles is list)
         && (!('pardonGifted' in data) || data.pardonGifted is bool)
         && (!('totalFocusTime' in data) || data.totalFocusTime is number)
-        && (!('completedQuests' in data) || data.completedQuests is number);
+        && (!('completedQuests' in data) || data.completedQuests is number)
+        && (!('isProfileComplete' in data) || data.isProfileComplete is bool);
     }
 
     function isValidQuest(data, userId) {
@@ -91,6 +92,7 @@ service cloud.firestore {
     // --- MATCH BLOCKS ---
 
     match /users/{userId} {
+      allow list: if isSignedIn();
       allow get: if isOwner(userId);
       allow create: if isOwner(userId) && isValidUserStats(incoming());
       allow update: if isOwner(userId) && isValidUserStats(incoming()) && (
@@ -100,7 +102,8 @@ service cloud.firestore {
           'totalFocusTime', 'completedQuests', 'displayName', 'photoURL',
           'penaltyActive', 'penaltyReason', 'penaltyDeadline', 'penaltyAssignedAt',
           'activeTitle', 'titles', 'pardonTickets', 'pardonGifted',
-          'height', 'weight', 'bloodType', 'ultimateGoal', 'gender', 'age'
+          'height', 'weight', 'bloodType', 'ultimateGoal', 'gender', 'age',
+          'isProfileComplete'
         ])
       );
 

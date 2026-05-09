@@ -1,13 +1,21 @@
 import { useState } from "react";
 import React from "react";
 import { motion } from "motion/react";
-import { User, Shield, UserCircle, Users, Calendar, ArrowLeft } from "lucide-react";
+import { User, Shield, UserCircle, Users, Calendar, ArrowLeft, Sparkles } from "lucide-react";
 import { signOut } from "firebase/auth";
 import { auth } from "../firebase";
 
 interface OnboardingProps {
   user: any;
-  onComplete: (data: { displayName: string; gender: "male" | "female"; age: number }) => void;
+  onComplete: (data: { 
+    displayName: string; 
+    gender: "male" | "female"; 
+    age: number;
+    height?: number;
+    weight?: number;
+    bloodType?: string;
+    ultimateGoal?: string;
+  }) => void;
 }
 
 export default function Onboarding({ user, onComplete }: OnboardingProps) {
@@ -15,6 +23,10 @@ export default function Onboarding({ user, onComplete }: OnboardingProps) {
     displayName: user.displayName || "",
     gender: "male" as "male" | "female",
     age: 18,
+    height: 170,
+    weight: 70,
+    bloodType: "A",
+    ultimateGoal: ""
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -41,8 +53,8 @@ export default function Onboarding({ user, onComplete }: OnboardingProps) {
           <div className="w-16 h-16 rounded-full bg-system-neon/20 flex items-center justify-center text-system-neon system-glow mb-2">
             <Shield size={32} />
           </div>
-          <span className="text-[10px] font-mono text-system-neon tracking-[0.4em] uppercase font-bold text-center">New Hunter Detected / تم اكتشاف صياد جديد</span>
-          <h2 className="text-3xl font-display font-black italic tracking-tighter text-center uppercase">Initialize Profile / إنشاء الملف الشخصي</h2>
+          <span className="text-[10px] font-mono text-system-neon tracking-[0.4em] uppercase font-bold text-center">New Hunter Detected</span>
+          <h2 className="text-3xl font-display font-black italic tracking-tighter text-center uppercase">Initialize Profile</h2>
           <p className="text-white/40 text-xs font-mono uppercase tracking-widest text-center">"Provide your core attributes to synchronize with the System Matrix."</p>
         </div>
 
@@ -53,14 +65,14 @@ export default function Onboarding({ user, onComplete }: OnboardingProps) {
                onClick={() => signOut(auth)}
                className="text-white/50 hover:text-system-neon flex items-center gap-2 text-xs font-mono uppercase transition-colors"
             >
-              <ArrowLeft size={14} /> Go Back (Sign Out) / العودة (تسجيل الخروج)
+              <ArrowLeft size={14} /> Go Back (Sign Out)
             </button>
           </div>
 
           {/* Display Name */}
           <div className="flex flex-col gap-2">
             <label className="flex items-center gap-2 text-xs font-mono text-white/50 uppercase tracking-widest">
-              <UserCircle size={14} className="text-system-neon" /> Hunter Name / اسم الصياد
+              <UserCircle size={14} className="text-system-neon" /> Hunter Name
             </label>
             <input
               type="text"
@@ -68,7 +80,7 @@ export default function Onboarding({ user, onComplete }: OnboardingProps) {
               value={formData.displayName}
               onChange={(e) => setFormData({ ...formData, displayName: e.target.value })}
               className="w-full bg-white/5 border border-white/10 rounded-lg py-3 px-4 focus:border-system-neon focus:ring-1 focus:ring-system-neon outline-none transition-all font-display text-lg"
-              placeholder="Enter your name... / أدخل اسمك..."
+              placeholder="Enter your name..."
             />
           </div>
 
@@ -76,7 +88,7 @@ export default function Onboarding({ user, onComplete }: OnboardingProps) {
             {/* Gender */}
             <div className="flex flex-col gap-2">
               <label className="flex items-center gap-2 text-xs font-mono text-white/50 uppercase tracking-widest">
-                <Users size={14} className="text-system-neon" /> Gender / الجنس
+                <Users size={14} className="text-system-neon" /> Gender
               </label>
               <div className="flex gap-2">
                 <button
@@ -88,7 +100,7 @@ export default function Onboarding({ user, onComplete }: OnboardingProps) {
                       : "bg-white/5 border-white/10 text-white/40"
                   }`}
                 >
-                  MALE / ذكر
+                  MALE
                 </button>
                 <button
                   type="button"
@@ -99,7 +111,7 @@ export default function Onboarding({ user, onComplete }: OnboardingProps) {
                       : "bg-white/5 border-white/10 text-white/40"
                   }`}
                 >
-                  FEMALE / أنثى
+                  FEMALE
                 </button>
               </div>
             </div>
@@ -107,7 +119,7 @@ export default function Onboarding({ user, onComplete }: OnboardingProps) {
             {/* Age */}
             <div className="flex flex-col gap-2">
               <label className="flex items-center gap-2 text-xs font-mono text-white/50 uppercase tracking-widest">
-                <Calendar size={14} className="text-system-neon" /> Hunter Age / العمر
+                <Calendar size={14} className="text-system-neon" /> Hunter Age
               </label>
               <input
                 type="number"
@@ -121,11 +133,58 @@ export default function Onboarding({ user, onComplete }: OnboardingProps) {
             </div>
           </div>
 
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+             <div className="flex flex-col gap-2">
+                <label className="text-[10px] font-mono text-white/50 uppercase tracking-widest">Height (cm)</label>
+                <input 
+                  type="number" 
+                  value={formData.height}
+                  onChange={(e) => setFormData({ ...formData, height: parseInt(e.target.value) })}
+                  className="w-full bg-white/5 border border-white/10 rounded-lg py-2 px-3 focus:border-system-neon outline-none"
+                />
+             </div>
+             <div className="flex flex-col gap-2">
+                <label className="text-[10px] font-mono text-white/50 uppercase tracking-widest">Weight (kg)</label>
+                <input 
+                  type="number" 
+                  value={formData.weight}
+                  onChange={(e) => setFormData({ ...formData, weight: parseInt(e.target.value) })}
+                  className="w-full bg-white/5 border border-white/10 rounded-lg py-2 px-3 focus:border-system-neon outline-none"
+                />
+             </div>
+             <div className="flex flex-col gap-2">
+                <label className="text-[10px] font-mono text-white/50 uppercase tracking-widest">Blood Type</label>
+                <select 
+                  value={formData.bloodType}
+                  onChange={(e) => setFormData({ ...formData, bloodType: e.target.value })}
+                  className="w-full bg-white/5 border border-white/10 rounded-lg py-2 px-3 focus:border-system-neon outline-none text-white/80"
+                >
+                  <option value="A">A</option>
+                  <option value="B">B</option>
+                  <option value="AB">AB</option>
+                  <option value="O">O</option>
+                </select>
+             </div>
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <label className="flex items-center gap-2 text-xs font-mono text-white/50 uppercase tracking-widest">
+              <Sparkles size={14} className="text-system-neon" /> Ultimate Goal
+            </label>
+            <textarea
+              required
+              value={formData.ultimateGoal}
+              onChange={(e) => setFormData({ ...formData, ultimateGoal: e.target.value })}
+              className="w-full bg-white/5 border border-white/10 rounded-lg py-3 px-4 focus:border-system-neon focus:ring-1 focus:ring-system-neon outline-none transition-all font-display text-base min-h-[100px]"
+              placeholder="What is your ultimate goal?"
+            />
+          </div>
+
           <button
             type="submit"
             className="mt-6 w-full py-4 bg-system-neon text-system-bg font-display font-black uppercase rounded-lg hover:scale-[1.02] active:scale-95 transition-all shadow-xl system-glow"
           >
-            Synchronize with Matrix / تزامن مع النظام
+            Synchronize with Matrix
           </button>
         </form>
 

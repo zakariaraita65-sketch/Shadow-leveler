@@ -8,6 +8,7 @@ export enum Rank {
   C_PLUS = "C+",
   B = "B",
   B_PLUS = "B+",
+  B_PLUS_PLUS = "B++",
   A = "A",
   A_PLUS = "A+",
   S = "S",
@@ -66,6 +67,10 @@ export interface UserStats {
   weight?: number;
   bloodType?: string;
   ultimateGoal?: string;
+  hardQuestsCompleted?: number;
+  dailyQuestsCompleted?: number;
+  totalExpEarned?: number;
+  isProfileComplete?: boolean;
 }
 
 export interface StoreItem {

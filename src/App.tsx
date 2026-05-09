@@ -50,7 +50,7 @@ import Login from './components/Login';
 import Onboarding from './components/Onboarding';
 import AIPenaltyVerifier from './components/AIPenaltyVerifier';
 import { UserStats, Quest, Rank } from './types';
-import { INITIAL_STATS, RANK_ORDER, EXP_PER_LEVEL, AVAILABLE_TITLES } from './constants';
+import { INITIAL_STATS, RANK_ORDER, EXP_PER_LEVEL, AVAILABLE_TITLES, GET_RANDOM_PENALTY } from './constants';
 import TitleSelector from './components/TitleSelector';
 
 export default function App() {
@@ -100,7 +100,15 @@ export default function App() {
     return unsub;
   }, []);
 
-  const handleOnboardingComplete = async (data: { displayName: string; gender: "male" | "female"; age: number }) => {
+  const handleOnboardingComplete = async (data: { 
+    displayName: string; 
+    gender: "male" | "female"; 
+    age: number;
+    height?: number;
+    weight?: number;
+    bloodType?: string;
+    ultimateGoal?: string;
+  }) => {
     if (!user) return;
     
     setLoading(true);
@@ -110,8 +118,13 @@ export default function App() {
       displayName: data.displayName,
       gender: data.gender,
       age: data.age,
+      height: data.height || 0,
+      weight: data.weight || 0,
+      bloodType: data.bloodType || "",
+      ultimateGoal: data.ultimateGoal || "",
       photoURL: user.photoURL || "",
       lastActive: new Date().toISOString(), // Ensure fresh start
+      isProfileComplete: !!data.displayName && (data.age || 0) > 0 && (data.height || 0) > 0 && (data.weight || 0) > 0 && !!data.gender
     };
 
     try {
@@ -133,6 +146,15 @@ export default function App() {
     const statsUnsub = onSnapshot(doc(db, 'users', user.uid), async (snap) => {
       if (snap.exists()) {
         const data = snap.data() as UserStats;
+        
+        // --- EXP CONSISTENCY CHECK (SAFETY) ---
+        // If maxExp is inconsistent with level (e.g. 120 for Level 2), recalibrate
+        const correctMaxExp = Math.floor(EXP_PER_LEVEL * Math.pow(1.05, (data.level || 1) - 1));
+        if (data.maxExp !== correctMaxExp && data.maxExp < 500) {
+           console.log("[SYSTEM] Recalibrating maxExp for user:", user.uid);
+           await updateDoc(doc(db, 'users', user.uid), { maxExp: correctMaxExp });
+        }
+
         setStats(data);
         
         // Award one-time pardon ticket if missing (for existing users)
@@ -218,7 +240,7 @@ export default function App() {
           exp: Math.max(0, stats.exp - 100),
           lastActive: now.toISOString(),
           penaltyActive: true,
-          penaltyReason: "LONG INACTIVITY DETECTED",
+          penaltyReason: "LONG INACTIVITY DETECTED: " + GET_RANDOM_PENALTY(),
           penaltyDeadline: new Date(now.getTime() + 24 * 60 * 60 * 1000).toISOString()
         });
         notify("SYSTEM WARNING: PENALTY QUEST GENERATED", "danger");
@@ -236,7 +258,7 @@ export default function App() {
 
           await updateDoc(userRef, {
             penaltyActive: true,
-            penaltyReason: "INCOMPLETE DAILY MISSIONS",
+            penaltyReason: "INCOMPLETE DAILY MISSIONS: " + GET_RANDOM_PENALTY(),
             penaltyDeadline: new Date(now.getTime() + 12 * 60 * 60 * 1000).toISOString(),
             lastActive: now.toISOString()
           });
@@ -260,7 +282,7 @@ export default function App() {
     setNotifications(prev => [...prev, { id: Date.now(), text, type }]);
   }, []);
 
-  const addExp = useCallback(async (amount: number, category?: string) => {
+  const addExp = useCallback(async (amount: number, category?: string, additionalUpdates: any = {}) => {
     if (!user) return;
     const userRef = doc(db, 'users', user.uid);
     
@@ -272,7 +294,7 @@ export default function App() {
     while (newExp >= newMaxExp) {
       newExp -= newMaxExp;
       newLevel += 1;
-      newMaxExp = Math.floor(EXP_PER_LEVEL * Math.pow(1.1, newLevel - 1));
+      newMaxExp = Math.floor(EXP_PER_LEVEL * Math.pow(1.05, newLevel - 1));
       const msg = `LEVEL UP! REACHED LEVEL ${newLevel}`;
       notify(msg, 'success');
       speak(msg);
@@ -287,20 +309,27 @@ export default function App() {
     }
 
     const goldEarned = Math.floor(amount * 0.8);
+    const totalExpNow = (stats.totalExpEarned || 0) + amount;
     
+    // Merge updates
+    const finalUpdate = { 
+      exp: newExp, 
+      level: newLevel, 
+      rank: newRank, 
+      maxExp: newMaxExp,
+      gold: stats.gold + goldEarned,
+      totalExpEarned: totalExpNow,
+      lastActive: new Date().toISOString(),
+      ...additionalUpdates
+    };
+
     try {
-      await updateDoc(userRef, { 
-        exp: newExp, 
-        level: newLevel, 
-        rank: newRank, 
-        maxExp: newMaxExp,
-        gold: stats.gold + goldEarned,
-        lastActive: new Date().toISOString()
-      });
+      await updateDoc(userRef, finalUpdate);
     } catch (err) { handleFirestoreError(err, OperationType.UPDATE, `users/${user.uid}`); }
 
-    // Title Awards Check
-    checkAndAwardTitles(newLevel, stats.completedQuests, amount);
+    // Title Awards Check - Use the most current counts
+    const completedNow = finalUpdate.completedQuests ?? stats.completedQuests;
+    checkAndAwardTitles(newLevel, completedNow, totalExpNow, newRank);
 
     if (category) {
       const skillRef = doc(db, 'users', user.uid, 'skills', category);
@@ -332,21 +361,17 @@ export default function App() {
     try {
       const qRef = doc(db, 'users', user.uid, 'quests', id);
       if (!quest.completed) {
-        await addExp(quest.expReward, quest.category);
         notify('MISSION COMPLETED', 'info');
         speak('MISSION COMPLETED. EXPERENCE GAINED.');
-        const newCompletedCount = stats.completedQuests + 1;
-        await updateDoc(doc(db, 'users', user.uid), { 
-          completedQuests: newCompletedCount,
-          lastActive: new Date().toISOString()
-        });
         
-        // Specific Title Check for Hard Quests
-        if (quest.expReward >= 300) {
-            checkAndAwardTitles(stats.level, newCompletedCount, quest.expReward, true);
-        } else {
-            checkAndAwardTitles(stats.level, newCompletedCount, quest.expReward);
-        }
+        const updates = {
+          completedQuests: stats.completedQuests + 1,
+          dailyQuestsCompleted: quest.type === 'daily' ? (stats.dailyQuestsCompleted || 0) + 1 : (stats.dailyQuestsCompleted || 0),
+          hardQuestsCompleted: quest.expReward >= 300 ? (stats.hardQuestsCompleted || 0) + 1 : (stats.hardQuestsCompleted || 0),
+        };
+
+        // Unified update for exp, rank, gold AND quest stats
+        await addExp(quest.expReward, quest.category, updates);
       }
       await updateDoc(qRef, { completed: !quest.completed, status: !quest.completed ? 'completed' : 'pending' });
     } catch (err) { handleFirestoreError(err, OperationType.UPDATE, `users/${user.uid}/quests/${id}`); }
@@ -387,22 +412,21 @@ export default function App() {
       
       const newExp = stats.exp - 200;
 
-      // Dynamically generate a penalty via AI
-      let generatedPenalty = "Complete 50 Push-ups, 100 Squats, or a 3km run.";
+      // Use the pre-defined 100 penalties for variety
+      let generatedPenalty = GET_RANDOM_PENALTY();
       try {
           const { GoogleGenAI } = await import('@google/genai');
           const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
           const diffStr = questExpReward > 100 ? "hard" : "easy";
-          const response = await ai.models.generateContent({
+          const result = await ai.models.generateContent({
               model: 'gemini-3-flash-preview',
               contents: `The user failed a mission called "${questTitle}" with difficulty "${diffStr}". 
-              Generate a constructive, academic, or study-related penalty task. 
-              EXAMPLES: "Complete the failed mission '${questTitle}' plus another similar mission", "Solve 20 complex problems and read 15 pages of a textbook", "Summarize an entire academic chapter in 300 words".
-              PRIORITIZE tasks related to studying, finishing missed work, and academic discipline.
-              Respond ONLY with the penalty task description. Do not categorize or explain it. Keep it under 2 sentences.`
+              Generate a constructive penalty task similar to "${generatedPenalty}". 
+              Maintain the spirit of academic or physical challenge.
+              Respond ONLY with the penalty task description. Keep it under 2 sentences.`
           });
-          if (response.text) {
-              generatedPenalty = response.text.trim();
+          if (result && result.text) {
+              generatedPenalty = result.text.trim();
           }
       } catch (err) {
           console.error("AI Penalty Gen Error", err);
@@ -445,13 +469,11 @@ export default function App() {
   };
 
   const handleFocusComplete = (minutes: number) => {
-    addExp(minutes * 10);
-    if (user) {
-      updateDoc(doc(db, 'users', user.uid), { 
-        totalFocusTime: stats.totalFocusTime + minutes,
-        lastActive: new Date().toISOString()
-      });
-    }
+    const updates = { 
+      totalFocusTime: stats.totalFocusTime + minutes,
+    };
+    addExp(minutes * 10, undefined, updates);
+    
     const msg = 'FOCUS TRAINING COMPLETE: MANA REPLENISHED';
     notify(msg, 'success');
     speak(msg);
@@ -531,6 +553,7 @@ export default function App() {
       speak("SYSTEM DATA SYNCHRONIZED. YOUR DNA HAS BEEN RECODED.");
     } catch (err) {
       handleFirestoreError(err, OperationType.UPDATE, `users/${user.uid}`);
+      throw err; // Re-throw to allow caller to handle failure
     }
   };
 
@@ -549,21 +572,17 @@ export default function App() {
         // Calculate new EXP and Level
         let newExp = stats.exp - 200;
         let newLevel = stats.level;
-        let newMaxExp = stats.maxExp;
-
+        
         if (newExp < 0) {
             if (newLevel > 1) {
                 newLevel -= 1;
-                // Simple level down: reset to 50% of previous level's max or similar
-                // For now, let's just reset exp to 0 if they level down, or 
-                // calculate based on old maxExp. 
-                // Let's keep it simple: drop level, set exp to 0.
                 newExp = 0;
-                newMaxExp = 100 * Math.pow(1.2, newLevel - 1);
             } else {
                 newExp = 0;
             }
         }
+
+        const newMaxExp = Math.floor(EXP_PER_LEVEL * Math.pow(1.05, newLevel - 1));
 
         await updateDoc(doc(db, 'users', user.uid), {
             penaltyActive: false,
@@ -613,31 +632,64 @@ export default function App() {
     }
   };
 
-  const checkAndAwardTitles = async (level: number, completedCount: number, lastExp: number, isHard: boolean = false) => {
+  const checkAndAwardTitles = async (level: number, completedCount: number, totalExp: number, currentRank: Rank) => {
     if (!user) return;
     const earnedTitles = [...(stats.titles || [])];
     let newlyEarned = false;
 
+    const dailyCount = stats.dailyQuestsCompleted || 0;
+    const hardCount = stats.hardQuestsCompleted || 0;
+    const streak = stats.streak || 0;
+
     AVAILABLE_TITLES.forEach(title => {
        if (earnedTitles.includes(title.name)) return;
 
-       if (title.id === 'hard_worker' && completedCount >= 10) {
+       if (title.id === 'night_stalker' && dailyCount >= 5) {
            earnedTitles.push(title.name);
            newlyEarned = true;
        }
-       if (title.id === 'scholar' && isHard) {
+       if (title.id === 'vampire_lord' && hardCount >= 10) {
            earnedTitles.push(title.name);
            newlyEarned = true;
        }
-       if (title.id === 'iron_will' && completedCount >= 50) {
+       if (title.id === 'monarch_death' && streak >= 15) {
            earnedTitles.push(title.name);
            newlyEarned = true;
        }
-       if (title.id === 'shadow_conqueror' && level >= 10) {
+       if (title.id === 'abyss_walker' && completedCount >= 100) {
            earnedTitles.push(title.name);
            newlyEarned = true;
        }
-       // Note: Undying and Beast Slayer might need more complex tracking, keeping it simple for now
+       if (title.id === 'blood_sovereign' && totalExp >= 10000) {
+           earnedTitles.push(title.name);
+           newlyEarned = true;
+       }
+       if (title.id === 'shadow_king' && level >= 15) {
+           earnedTitles.push(title.name);
+           newlyEarned = true;
+       }
+       if (title.id === 'architect_fate' && completedCount >= 500) {
+           earnedTitles.push(title.name);
+           newlyEarned = true;
+       }
+       if (title.id === 'absolute_being' && level >= 100) {
+           earnedTitles.push(title.name);
+           newlyEarned = true;
+       }
+       if (title.id === 'shadow_monarch_true' && RANK_ORDER.indexOf(currentRank) >= 15) {
+           earnedTitles.push(title.name);
+           newlyEarned = true;
+       }
+       
+       if (title.id === 'void_hunter') {
+          // Check if user has skills in all categories (proxy for having completed quests in all categories)
+          const categories = ['hg', 'french', 'arabic', 'islamic'];
+          const hasAll = categories.every(cat => skills[cat] && skills[cat].level >= 1);
+          if (hasAll) {
+             earnedTitles.push(title.name);
+             newlyEarned = true;
+          }
+       }
     });
 
     if (newlyEarned) {
@@ -750,17 +802,6 @@ export default function App() {
                  </div>
               </div>
               <button 
-                onClick={async () => {
-                  if (!user) return;
-                  notify("DEV COMMAND EXECUTED: +500 XP", "success");
-                  await addExp(500, 'dev');
-                }}
-                className="flex items-center gap-3 px-3 py-2 text-system-neon hover:text-white transition-colors"
-               >
-                 <Sparkles size={20} />
-                 <span className="text-sm font-medium">DEV: +500 XP</span>
-               </button>
-              <button 
                 onClick={handleLogout}
                 className="flex items-center gap-3 px-3 py-2 text-white/40 hover:text-system-danger transition-colors mt-2"
               >
@@ -843,7 +884,7 @@ export default function App() {
               )}
 
               {activeTab === 'profile' && (
-                <ProfileView stats={stats} skills={skills} questCount={quests.length} onUpdateStats={handleUpdateUserStats} />
+                <ProfileView userId={user.uid} stats={stats} skills={skills} questCount={quests.length} onUpdateStats={handleUpdateUserStats} />
               )}
 
               {activeTab === 'timer' && (
@@ -911,7 +952,7 @@ export default function App() {
                          {isSacrificing ? (
                             <><Clock size={16} className="animate-spin" /> PURGING DATA...</>
                         ) : (
-                            <>SACRIFICE DATA (-200 EXP) / تضحية بالخبرة</>
+                            <>SACRIFICE DATA (-200 EXP)</>
                         )}
                       </button>
                       <span className="text-[9px] font-mono text-white/30 uppercase">
@@ -936,11 +977,11 @@ export default function App() {
                         {isPardoning ? (
                             <><Clock size={16} className="animate-spin" /> EXECUTING...</>
                         ) : (
-                            <>REQUEST ROYAL PARDON / العفو الملكي</>
+                            <>REQUEST ROYAL PARDON</>
                         )}
                       </button>
                       <span className="text-[9px] font-mono text-white/30 uppercase">
-                          Inventory: {stats.pardonTickets || 0} Tickets / التذاكر المتوفرة: {stats.pardonTickets || 0}
+                          Inventory: {stats.pardonTickets || 0} Tickets
                       </span>
                   </div>
                   {(stats.pardonTickets || 0) <= 0 && (
@@ -952,7 +993,7 @@ export default function App() {
                     onClick={handlePenaltyFailure}
                     className="w-full py-2 border border-white/10 text-white/40 font-mono text-[9px] uppercase hover:text-system-danger transition-colors mt-2"
                   >
-                    Accept Total Failure (Level -1) / قبول الفشل
+                    Accept Total Failure (Level -1)
                   </button>
                </div>
             </div>
@@ -967,6 +1008,8 @@ export default function App() {
              earnedTitles={stats.titles || []} 
              activeTitle={stats.activeTitle || ""}
              onSelect={handleSetTitle}
+             stats={stats}
+             skills={skills}
           />
         )}
       </AnimatePresence>
