@@ -3,11 +3,11 @@ import { motion, AnimatePresence } from "motion/react";
 import { Timer, Play, Pause, RotateCcw, Target, Volume2, VolumeX } from "lucide-react";
 
 const AMBIENT_SOUNDS = [
-  { id: 'drops', name: 'Water Drops', url: 'https://actions.google.com/sounds/v1/water/water_drips.ogg' },
-  { id: 'ocean', name: 'Ocean Waves', url: 'https://actions.google.com/sounds/v1/water/waves_crashing_on_rock_beach.ogg' },
-  { id: 'wind', name: 'Wind', url: 'https://actions.google.com/sounds/v1/weather/wind.ogg' },
-  { id: 'thunder', name: 'Thunderstorm', url: 'https://actions.google.com/sounds/v1/weather/thunderstorm.ogg' },
-  { id: 'cafe', name: 'Coffee Shop', url: 'https://actions.google.com/sounds/v1/ambiences/coffee_shop.ogg' },
+  { id: 'drops', name: 'Water Drops', url: 'https://assets.mixkit.co/active_storage/sfx/2390/2390-preview.mp3' },
+  { id: 'ocean', name: 'Ocean Waves', url: 'https://assets.mixkit.co/active_storage/sfx/1110/1110-preview.mp3' },
+  { id: 'wind', name: 'Wind', url: 'https://assets.mixkit.co/active_storage/sfx/2418/2418-preview.mp3' },
+  { id: 'thunder', name: 'Thunderstorm', url: 'https://assets.mixkit.co/active_storage/sfx/2413/2413-preview.mp3' },
+  { id: 'cafe', name: 'Coffee Shop', url: 'https://assets.mixkit.co/active_storage/sfx/1199/1199-preview.mp3' },
 ];
 
 interface FocusTimerProps {
