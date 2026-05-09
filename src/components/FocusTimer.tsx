@@ -3,11 +3,10 @@ import { motion, AnimatePresence } from "motion/react";
 import { Timer, Play, Pause, RotateCcw, Target, Volume2, VolumeX } from "lucide-react";
 
 const AMBIENT_SOUNDS = [
+  { id: 'forest', name: 'Mystic Forest', url: 'https://assets.mixkit.co/active_storage/sfx/2437/2437-preview.mp3' },
   { id: 'drops', name: 'Water Drops', url: 'https://assets.mixkit.co/active_storage/sfx/2390/2390-preview.mp3' },
-  { id: 'ocean', name: 'Ocean Waves', url: 'https://assets.mixkit.co/active_storage/sfx/1110/1110-preview.mp3' },
-  { id: 'wind', name: 'Wind', url: 'https://assets.mixkit.co/active_storage/sfx/2418/2418-preview.mp3' },
-  { id: 'thunder', name: 'Thunderstorm', url: 'https://assets.mixkit.co/active_storage/sfx/2413/2413-preview.mp3' },
-  { id: 'cafe', name: 'Coffee Shop', url: 'https://assets.mixkit.co/active_storage/sfx/1199/1199-preview.mp3' },
+  { id: 'rain', name: 'Heavy Rain', url: 'https://assets.mixkit.co/active_storage/sfx/2413/2413-preview.mp3' },
+  { id: 'meditation', name: 'Deep Meditation', url: 'https://assets.mixkit.co/active_storage/sfx/2394/2394-preview.mp3' },
 ];
 
 interface FocusTimerProps {
@@ -162,7 +161,7 @@ export default function FocusTimer({ onFocusComplete, onStart }: FocusTimerProps
              className="absolute top-0 left-[-20%] w-[140%] h-[40%] bg-gradient-to-r from-transparent via-system-neon/40 to-transparent rounded-[100%] mix-blend-screen"
            />
            
-           {/* Fluid Wave 2 (Deep Blue/Grey) */}
+           {/* Fluid Wave 2 (Contrast Layer) */}
            <motion.div 
              animate={{ 
                x: isActive ? ['10%', '-20%', '5%', '-10%'] : '0%',
@@ -171,18 +170,18 @@ export default function FocusTimer({ onFocusComplete, onStart }: FocusTimerProps
                rotate: isActive ? [10, 20, 5, 15] : 15
              }}
              transition={{ duration: 25, repeat: Infinity, ease: "easeInOut", delay: 2 }}
-             className="absolute top-0 left-[-20%] w-[140%] h-[35%] bg-gradient-to-r from-transparent via-cyan-900/30 to-transparent rounded-[100%] mix-blend-multiply"
+             className="absolute top-0 left-[-20%] w-[140%] h-[35%] bg-gradient-to-r from-transparent via-system-neon/20 to-transparent rounded-[100%] mix-blend-multiply"
            />
 
-           {/* Fluid Wave 3 (Bright Highlights/White) */}
+           {/* Fluid Wave 3 (High Intensity Highlights) */}
            <motion.div 
              animate={{ 
                x: isActive ? ['-5%', '15%', '-10%', '0%'] : '0%',
                y: isActive ? ['20%', '45%', '15%', '30%'] : '30%',
-               opacity: isActive ? [0.3, 0.6, 0.4, 0.5] : 0.2
+               opacity: isActive ? [0.4, 0.8, 0.5, 0.7] : 0.2
              }}
              transition={{ duration: 15, repeat: Infinity, ease: "easeInOut", delay: 5 }}
-             className="absolute top-0 left-[-20%] w-[140%] h-[20%] bg-gradient-to-r from-transparent via-white/10 to-transparent rounded-[100%] rotate-[-5deg] mix-blend-overlay"
+             className="absolute top-0 left-[-20%] w-[140%] h-[20%] bg-gradient-to-r from-transparent via-white/20 to-transparent rounded-[100%] rotate-[-5deg] mix-blend-overlay"
            />
 
            {/* Core Glow Center */}

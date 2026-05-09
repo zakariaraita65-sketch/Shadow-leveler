@@ -22,14 +22,18 @@ export interface Quest {
   id: string;
   title: string;
   description: string;
-  expReward: number;
+  exp: number;
+  gold?: number;
+  difficulty?: "Easy" | "Medium" | "Hard" | "Legendary" | "Mythic";
   type: "daily" | "main";
   completed: boolean;
-  dueDate: string; // Deprecate or keep as optional/fallback? Let's keep it but it might be null/empty
+  dueDate: string; 
   category: string;
-  duration?: number; // duration in minutes
+  duration?: number;
   status?: "pending" | "active" | "completed" | "failed";
-  startedAt?: string; // ISO string
+  startedAt?: string;
+  userId?: string;
+  createdAt?: string;
 }
 
 export interface Skill {
@@ -59,6 +63,7 @@ export interface UserStats {
   penaltyReason?: string;
   penaltyDeadline?: string;
   penaltyAssignedAt?: string;
+  lockdownUntil?: string; // ISO string for the 5-minute lockdown
   activeTitle?: string;
   titles?: string[];
   pardonTickets?: number;

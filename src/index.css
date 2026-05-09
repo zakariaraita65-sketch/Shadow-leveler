@@ -9,7 +9,8 @@
   --color-system-card: #161827;
   --color-system-accent: #6366f1;
   --color-system-purple: #a855f7;
-  --color-system-neon: #00f2ff;
+  --system-neon-rgb: 0, 242, 255;
+  --color-system-neon: rgb(var(--system-neon-rgb));
   --color-system-danger: #ff4e4e;
 }
 
@@ -28,10 +29,10 @@
   animation: spin-slow 8s infinite linear;
 }
 .neon-text-strong {
-  text-shadow: 0 0 12px rgba(0, 242, 255, 0.8), 0 0 24px rgba(0, 242, 255, 0.4);
+  text-shadow: 0 0 12px rgba(var(--system-neon-rgb), 0.8), 0 0 24px rgba(var(--system-neon-rgb), 0.4);
 }
 .system-glow-small {
-   box-shadow: 0 0 10px rgba(0, 242, 255, 0.15);
+   box-shadow: 0 0 10px rgba(var(--system-neon-rgb), 0.15);
 }
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@300;500;700&display=swap');
@@ -43,15 +44,15 @@ body {
 }
 
 .system-glow {
-  box-shadow: 0 0 15px rgba(0, 242, 255, 0.2);
+  box-shadow: 0 0 15px rgba(var(--system-neon-rgb), 0.2);
 }
 
 .system-border {
-  border: 1px solid rgba(0, 242, 255, 0.3);
+  border: 1px solid rgba(var(--system-neon-rgb), 0.3);
 }
 
 .neon-text {
-  text-shadow: 0 0 8px rgba(0, 242, 255, 0.5);
+  text-shadow: 0 0 8px rgba(var(--system-neon-rgb), 0.5);
 }
 
 .purple-glow {

@@ -1,13 +1,17 @@
 import { motion } from "motion/react";
-import { STORE_ITEMS } from "../constants";
+import { STORE_ITEMS, getCurrencyForTitle } from "../constants";
 import * as LucideIcons from "lucide-react";
 
 interface StoreSectionProps {
   gold: number;
   onBuy: (item: any) => void;
+  activeTitle: string;
 }
 
-export default function StoreSection({ gold, onBuy }: StoreSectionProps) {
+export default function StoreSection({ gold, onBuy, activeTitle }: StoreSectionProps) {
+  const currency = getCurrencyForTitle(activeTitle);
+  const CurrencyIcon = (LucideIcons as any)[currency.icon] || LucideIcons.Coins;
+
   return (
     <div className="flex flex-col gap-8">
       <div className="flex items-center justify-between">
@@ -15,9 +19,14 @@ export default function StoreSection({ gold, onBuy }: StoreSectionProps) {
           <LucideIcons.ShoppingBag className="text-system-neon" />
           <h2 className="text-2xl font-display font-bold italic tracking-tight">System Store</h2>
         </div>
-        <div className="flex items-center gap-2 px-4 py-2 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
-          <LucideIcons.Coins className="text-yellow-400" size={18} />
-          <span className="text-xl font-display font-bold text-yellow-400 neon-text">{gold}G</span>
+        <div className="flex items-center gap-4 px-4 py-2 bg-system-neon/5 border border-system-neon/20 rounded-lg">
+          <div className="flex items-center gap-2">
+            <CurrencyIcon className="text-system-neon" size={18} />
+            <div className="flex flex-col">
+              <span className="text-[8px] font-mono text-white/40 uppercase leading-none mb-1">{currency.name}</span>
+              <span className="text-xl font-display font-bold text-system-neon neon-text leading-none">{gold}</span>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -62,15 +71,16 @@ export default function StoreSection({ gold, onBuy }: StoreSectionProps) {
                 }`}
               >
                 {canAfford ? (
-                  <>Purchase for {item.cost}G</>
+                  <>Exchange {item.cost} {currency.name}</>
                 ) : (
-                  <>Insufficient Funds ({item.cost}G)</>
+                  <>Insufficient {currency.name} ({item.cost})</>
                 )}
               </button>
             </motion.div>
           );
         })}
       </div>
+
       
       <div className="p-6 bg-blue-500/5 border border-blue-500/20 rounded-xl mt-4">
          <p className="text-xs text-blue-300 font-mono italic opacity-70">

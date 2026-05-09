@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { motion } from 'motion/react';
 import { Check, Info } from 'lucide-react';
 import { Rank } from '../types';
-import { RANK_ORDER } from '../constants';
+import { RANK_ORDER, getRankIndexForLevel } from '../constants';
 import { Leaderboard } from './Leaderboard';
 
 interface RankSectionProps {
@@ -19,13 +19,13 @@ export default function RankSection({ level, rank, exp, maxExp }: RankSectionPro
   // Standard is to show a window of levels, e.g., level - 2 to level + 5.
   
   const startLevel = Math.max(1, level - 2);
-  const endLevel = startLevel + 6;
+  const endLevel = startLevel + 4;
   
   const visibleLevels = Array.from({ length: endLevel - startLevel + 1 }, (_, i) => startLevel + i);
 
   const getRankForLevel = (l: number): Rank => {
-    const idx = Math.min(Math.floor((l - 1) / 5), RANK_ORDER.length - 1);
-    return RANK_ORDER[idx];
+    const idx = getRankIndexForLevel(l);
+    return RANK_ORDER[idx] || RANK_ORDER[RANK_ORDER.length - 1];
   };
 
   const getRankColor = (r: Rank) => {

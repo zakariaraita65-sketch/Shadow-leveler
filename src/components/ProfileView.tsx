@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, ChangeEvent } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   User, 
@@ -23,10 +23,25 @@ import {
   Scale,
   Ruler,
   Droplets,
-  Flag
+  Flag,
+  Camera,
+  Gem,
+  Moon,
+  CircleDot,
+  Ghost,
+  Coins,
+  Flame,
+  CloudMoon,
+  Sparkles,
+  Sun,
+  Crown
 } from 'lucide-react';
 import { UserStats, Rank } from '../types';
-import { RANK_ORDER, RANK_TITLES, AVAILABLE_TITLES, DIFFICULTY_COLORS } from '../constants';
+import { RANK_ORDER, RANK_TITLES, AVAILABLE_TITLES, DIFFICULTY_COLORS, getCurrencyForTitle } from '../constants';
+
+const ICON_MAP: Record<string, any> = {
+  Gem, Moon, CircleDot, Droplets, Ghost, Coins, Flame, CloudMoon, Sparkles, Sun, Crown
+};
 
 interface ProfileViewProps {
   userId: string;
@@ -65,7 +80,6 @@ export default function ProfileView({ userId, stats, skills, questCount, onUpdat
   const handleSave = async () => {
     try {
       setIsSaving(true);
-      // Sanitize numeric data to prevent NaN in Firestore
       const sanitizedData = {
         ...editData,
         age: isNaN(editData.age) ? 0 : editData.age,
@@ -73,7 +87,6 @@ export default function ProfileView({ userId, stats, skills, questCount, onUpdat
         weight: isNaN(editData.weight) ? 0 : editData.weight
       };
 
-      // Determine if profile is complete (Name, Age, Height, Weight, Gender)
       const isComplete = !!sanitizedData.displayName && 
                          sanitizedData.age > 0 && 
                          sanitizedData.height > 0 && 
@@ -92,11 +105,40 @@ export default function ProfileView({ userId, stats, skills, questCount, onUpdat
     }
   };
 
+  const [isUploading, setIsUploading] = useState(false);
+  const handlePhotoChange = async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 500000) {
+      alert("Image is too large. Please select a photo under 500KB.");
+      return;
+    }
+
+    try {
+      setIsUploading(true);
+      const reader = new FileReader();
+      reader.onloadend = async () => {
+        const base64String = reader.result as string;
+        await onUpdateStats({ photoURL: base64String });
+        setIsUploading(false);
+      };
+      reader.readAsDataURL(file);
+    } catch (error) {
+      console.error("Photo upload failed:", error);
+      setIsUploading(false);
+    }
+  };
+
   const currentRank = stats.rank || Rank.E;
   const rankTitle = RANK_TITLES[currentRank] || "ROOKIE";
   const activeTitle = stats.activeTitle || rankTitle;
-
+  
+  const currency = getCurrencyForTitle(activeTitle);
+  const CurrencyIcon = ICON_MAP[currency.icon] || Coins;
+  
   const skillEntries = Object.entries(skills);
+
   const sortedSkills = skillEntries
     .map(([id, data]: [string, any]) => ({
       id,
@@ -127,13 +169,27 @@ export default function ProfileView({ userId, stats, skills, questCount, onUpdat
         </div>
         
         <div className="flex flex-col md:flex-row items-center gap-8 relative z-10">
-          <div className="relative">
-            <div className="w-32 h-32 rounded-full system-border overflow-hidden bg-system-neon/20 flex items-center justify-center">
-              {stats.photoURL ? (
+          <div className="relative group">
+            <div className="w-32 h-32 rounded-full system-border overflow-hidden bg-system-neon/20 flex items-center justify-center relative">
+              {isUploading ? (
+                <div className="w-8 h-8 border-4 border-system-neon/20 border-t-system-neon rounded-full animate-spin" />
+              ) : stats.photoURL ? (
                 <img src={stats.photoURL} alt="Avatar" className="w-full h-full object-cover" />
               ) : (
                 <User size={64} className="text-system-neon" />
               )}
+              
+              <label className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+                <Camera size={24} className="text-white mb-1" />
+                <span className="text-[10px] font-mono text-white uppercase font-bold">Update</span>
+                <input 
+                  type="file" 
+                  accept="image/*" 
+                  className="hidden" 
+                  onChange={handlePhotoChange}
+                  disabled={isUploading}
+                />
+              </label>
             </div>
             <div className="absolute -bottom-2 -right-2 bg-system-neon text-black px-3 py-1 rounded-full text-xs font-bold font-display italic">
               LVL {stats.level}
@@ -291,7 +347,7 @@ export default function ProfileView({ userId, stats, skills, questCount, onUpdat
             {[
               { label: "Total Missions", value: questCount, icon: <Target className="text-blue-400" /> },
               { label: "Current Streak", value: `${stats.streak} Days`, icon: <Zap className="text-yellow-400" /> },
-              { label: "Total Focus", value: `${Math.round(stats.totalFocusTime / 3600)}h`, icon: <Clock className="text-system-neon" /> },
+              { label: currency.name.toUpperCase(), value: stats.gold, icon: <CurrencyIcon className="text-yellow-400" /> },
               { label: "Completion Rate", value: `${questCount > 0 ? Math.round((stats.completedQuests / questCount) * 100) : 0}%`, icon: <TrendingUp className="text-purple-400" /> },
             ].map((stat, i) => (
               <motion.div 

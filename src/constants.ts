@@ -168,6 +168,39 @@ export const INITIAL_STATS = {
   isProfileComplete: false
 };
 
+export const getRankIndexForLevel = (level: number): number => {
+  // E, D, C logic: 3 levels for base, 2 levels for plus
+  if (level <= 15) {
+    const group = Math.floor((level - 1) / 5);
+    const mod = (level - 1) % 5;
+    return group * 2 + (mod < 3 ? 0 : 1);
+  }
+  
+  // B tiers (16-30): 5 levels each
+  if (level <= 30) {
+    if (level <= 20) return 6; // B
+    if (level <= 25) return 7; // B+
+    return 8; // B++
+  }
+  
+  // A tiers (31-50): 10 levels each
+  if (level <= 50) {
+    return level <= 40 ? 9 : 10;
+  }
+  
+  // S tiers (51-80): 15 levels each
+  if (level <= 80) {
+    return level <= 65 ? 11 : 12;
+  }
+  
+  // SS tiers (81-100): 10 levels each
+  if (level <= 100) {
+    return level <= 90 ? 13 : 14;
+  }
+  
+  return 15; // SSS
+};
+
 export const DIFFICULTY_COLORS: Record<string, string> = {
   "Mythic": "text-white border-white/50 bg-white/10",
   "Legendary": "text-cyan-300 border-cyan-900/50 bg-cyan-950/20",
@@ -177,18 +210,123 @@ export const DIFFICULTY_COLORS: Record<string, string> = {
 };
 
 export const AVAILABLE_TITLES = [
-  { id: "awakening", name: "The Awakening", condition: "Initial Title", difficulty: "Easy", theme: { color: "#22d3ee", shadow: "0 0 15px rgba(34,211,238,0.2)" } },
-  { id: "night_stalker", name: "Night Stalker", condition: "Complete 5 Daily Quests", difficulty: "Medium", goal: 5, metric: "dailyQuestsCompleted", theme: { color: "#f97316", shadow: "0 0 20px rgba(249,115,22,0.3)" } },
-  { id: "void_hunter", name: "Void Hunter", condition: "Complete a quest in every category", difficulty: "Medium", goal: 4, metric: "categories", theme: { color: "#f97316", shadow: "0 0 20px rgba(249,115,22,0.3)" } },
-  { id: "vampire_lord", name: "Vampire Overlord", condition: "Complete 10 Hard Quests", difficulty: "Hard", goal: 10, metric: "hardQuestsCompleted", theme: { color: "#ef4444", shadow: "0 0 25px rgba(239,68,68,0.4)" } },
-  { id: "monarch_death", name: "Monarch of Death", condition: "Maintain a 15-day streak", difficulty: "Hard", goal: 15, metric: "streak", theme: { color: "#ef4444", shadow: "0 0 30px rgba(239,68,68,0.5)" } },
-  { id: "abyss_walker", name: "Abyss Walker", condition: "Complete 100 Quests", difficulty: "Hard", goal: 100, metric: "completedQuests", theme: { color: "#ef4444", shadow: "0 0 25px rgba(239,68,68,0.4)" } },
-  { id: "blood_sovereign", name: "Blood Sovereign", condition: "Earn 10,000 Total XP", difficulty: "Hard", goal: 10000, metric: "totalExpEarned", theme: { color: "#ef4444", shadow: "0 0 35px rgba(239,68,68,0.5)" } },
-  { id: "shadow_king", name: "Shadow King", condition: "Reach Level 15", difficulty: "Legendary", goal: 15, metric: "level", theme: { color: "#a5f3fc", shadow: "0 0 40px rgba(165,243,252,0.6)", glow: true } },
-  { id: "architect_fate", name: "Architect of Fate", condition: "Complete 500 Missions", difficulty: "Mythic", goal: 500, metric: "completedQuests", secret: true, theme: { color: "#e879f9", shadow: "0 0 50px rgba(232,121,249,0.7)", glow: true } },
-  { id: "absolute_being", name: "Absolute Being", condition: "Reach Level 100", difficulty: "Mythic", goal: 100, metric: "level", secret: true, theme: { color: "#fcd34d", shadow: "0 0 60px rgba(252,211,77,0.8)", glow: true } },
-  { id: "shadow_monarch_true", name: "True Shadow Monarch", condition: "Reach SSS Rank", difficulty: "Mythic", goal: 15, metric: "rankIndex", secret: true, theme: { color: "#ffffff", shadow: "0 0 70px rgba(255,255,255,0.9)", glow: true } }
+  { 
+    id: "awakening", 
+    name: "The Awakening", 
+    condition: "Initial Title", 
+    difficulty: "Easy", 
+    theme: { color: "#22d3ee", shadow: "0 0 15px rgba(34,211,238,0.2)" },
+    currency: { name: "Mana Crystals", icon: "Gem" }
+  },
+  { 
+    id: "night_stalker", 
+    name: "Night Stalker", 
+    condition: "Complete 5 Daily Quests", 
+    difficulty: "Medium", 
+    goal: 5, 
+    metric: "dailyQuestsCompleted", 
+    theme: { color: "#f97316", shadow: "0 0 20px rgba(249,115,22,0.3)" },
+    currency: { name: "Night Essences", icon: "Moon" }
+  },
+  { 
+    id: "void_hunter", 
+    name: "Void Hunter", 
+    condition: "Complete a quest in every category", 
+    difficulty: "Medium", 
+    goal: 4, 
+    metric: "categories", 
+    theme: { color: "#f97316", shadow: "0 0 20px rgba(249,115,22,0.3)" },
+    currency: { name: "Void Orbs", icon: "CircleDot" }
+  },
+  { 
+    id: "vampire_lord", 
+    name: "Vampire Overlord", 
+    condition: "Complete 10 Hard Quests", 
+    difficulty: "Hard", 
+    goal: 10, 
+    metric: "hardQuestsCompleted", 
+    theme: { color: "#ef4444", shadow: "0 0 25px rgba(239,68,68,0.4)" },
+    currency: { name: "Blood Drops", icon: "Droplets" }
+  },
+  { 
+    id: "monarch_death", 
+    name: "Monarch of Death", 
+    condition: "Maintain a 15-day streak", 
+    difficulty: "Hard", 
+    goal: 15, 
+    metric: "streak", 
+    theme: { color: "#ef4444", shadow: "0 0 30px rgba(239,68,68,0.5)" },
+    currency: { name: "Soul Shards", icon: "Ghost" }
+  },
+  { 
+    id: "abyss_walker", 
+    name: "Abyss Walker", 
+    condition: "Complete 100 Quests", 
+    difficulty: "Hard", 
+    goal: 100, 
+    metric: "completedQuests", 
+    theme: { color: "#ef4444", shadow: "0 0 25px rgba(239,68,68,0.4)" },
+    currency: { name: "Abyssal Coins", icon: "Coins" }
+  },
+  { 
+    id: "blood_sovereign", 
+    name: "Blood Sovereign", 
+    condition: "Earn 10,000 Total XP", 
+    difficulty: "Hard", 
+    goal: 10000, 
+    metric: "totalExpEarned", 
+    theme: { color: "#ef4444", shadow: "0 0 35px rgba(239,68,68,0.5)" },
+    currency: { name: "Sovereign Blood", icon: "Flame" }
+  },
+  { 
+    id: "shadow_king", 
+    name: "Shadow King", 
+    condition: "Reach Level 15", 
+    difficulty: "Legendary", 
+    goal: 15, 
+    metric: "level", 
+    theme: { color: "#a5f3fc", shadow: "0 0 40px rgba(165,243,252,0.6)", glow: true },
+    currency: { name: "Shadow Credits", icon: "CloudMoon" }
+  },
+  { 
+    id: "architect_fate", 
+    name: "Architect of Fate", 
+    condition: "Complete 500 Missions", 
+    difficulty: "Mythic", 
+    goal: 500, 
+    metric: "completedQuests", 
+    secret: true, 
+    theme: { color: "#e879f9", shadow: "0 0 50px rgba(232,121,249,0.7)", glow: true },
+    currency: { name: "Fate Fragments", icon: "Sparkles" }
+  },
+  { 
+    id: "absolute_being", 
+    name: "Absolute Being", 
+    condition: "Reach Level 100", 
+    difficulty: "Mythic", 
+    goal: 100, 
+    metric: "level", 
+    secret: true, 
+    theme: { color: "#fcd34d", shadow: "0 0 60px rgba(252,211,77,0.8)", glow: true },
+    currency: { name: "Celestial Gold", icon: "Sun" }
+  },
+  { 
+    id: "shadow_monarch_true", 
+    name: "True Shadow Monarch", 
+    condition: "Reach SSS Rank", 
+    difficulty: "Mythic", 
+    goal: 15, 
+    metric: "rankIndex", 
+    secret: true, 
+    theme: { color: "#ffffff", shadow: "0 0 70px rgba(255,255,255,0.9)", glow: true },
+    currency: { name: "Monarch Essence", icon: "Crown" }
+  }
 ];
+
+export const getCurrencyForTitle = (titleName: string) => {
+  const title = AVAILABLE_TITLES.find(t => t.name === titleName) || AVAILABLE_TITLES[0];
+  return title.currency || AVAILABLE_TITLES[0].currency;
+};
 
 export const STORE_ITEMS = [
   { 
@@ -233,26 +371,83 @@ export const STORE_ITEMS = [
   }
 ];
 
+export const EXAM_DATE = "2026-06-01T08:00:00Z"; // Updated to June 1st as per user request
+
 export const SCIENTIFIC_QUOTES = [
-  { text: "Wake up to reality! Nothing ever goes as planned in this world.", author: "Madara Uchiha" },
-  { text: "People live their lives bound by what they accept as correct and true. That is how they define 'reality'.", author: "Itachi Uchiha" },
-  { text: "Those who do not understand true pain can never understand true peace.", author: "Pain (Nagato)" },
-  { text: "Always protect your pride. To bow down to others is to admit defeat.", author: "Sung Jin-Woo" },
-  { text: "If you don't take risks, you can't create a future.", author: "Monkey D. Luffy" },
-  { text: "My soldiers, rage! My soldiers, scream! My soldiers, fight!", author: "Erwin Smith" },
-  { text: "The world is cruel, but also very beautiful.", author: "Mikasa Ackerman" },
-  { text: "Whatever you lose, you'll find it again. But what you throw away you'll never get back.", author: "Kenshin Himura" },
-  { text: "Stand proud. You are strong.", author: "Ryomen Sukuna" },
-  { text: "Throughout Heaven and Earth, I alone am the honored one.", author: "Satoru Gojo" },
-  { text: "Knowing what it feels like to be in pain, is exactly why we try to be kind to others.", author: "Jiraiya" },
-  { text: "Imagination is more important than knowledge.", author: "Albert Einstein" },
-  { text: "Nothing in life is to be feared, it is only to be understood.", author: "Marie Curie" },
-  { text: "Success is not final, failure is not fatal: it is the courage to continue that counts.", author: "Winston Churchill" }
+  { text: "Science is the only way to win against the irrational.", author: "Senku Ishigami", anime: "Dr. Stone" },
+  { text: "There is no such thing as a perfect truth. Everything is a hypothesis.", author: "L Lawliet", anime: "Death Note" },
+  { text: "The universe has a beginning, but no end. — Infinity. Stars, too, have their own beginnings, but their own power results in their destruction. — Finite.", author: "Kurisu Makise", anime: "Steins;Gate" },
+  { text: "To defeat evil, I must become a greater evil. But to attain wisdom, I must observe the source.", author: "Lelouch Lamperouge", anime: "Code Geass" },
+  { text: "No one starts at the top of the world. You, not even God. But the unbearable vacancy of the throne of the sky is over.", author: "Sosuke Aizen", anime: "Bleach" },
+  { text: "Innovation isn't about creating something new, but about observing what exists with a new eye.", author: "Kisuke Urahara", anime: "Bleach" },
+  { text: "Sometimes it's better to be a lazy genius than a hardworking fool, but knowledge is the only path to real peace.", author: "Shikamaru Nara", anime: "Naruto" },
+  { text: "The only thing humans are equal in is death. Everything else is a result of the knowledge they possess.", author: "Johan Liebert", anime: "Monster" },
+  { text: "A throne is only as strong as the intellect that supports it.", author: "Meruem", anime: "Hunter x Hunter" },
+  { text: "Books are not just pieces of paper, they are the distilled essence of a human mind.", author: "Shogo Makishima", anime: "Psycho-Pass" },
+  { text: "Ten billion percent sure! Science will light the way through the stone age.", author: "Senku Ishigami", anime: "Dr. Stone" },
+  { text: "The mind of a human is the only place where the laws of physics can be questioned.", author: "Kurisu Makise", anime: "Steins;Gate" },
+  { text: "Information is the most valuable currency in any conflict.", author: "L Lawliet", anime: "Death Note" }
 ];
 
 export const SUBJECTS = [
-  { id: "hg", name: "HG (History/Geog)", icon: "Globe" },
-  { id: "french", name: "French", icon: "Languages" },
-  { id: "arabic", name: "Arabic", icon: "Languages" },
-  { id: "islamic", name: "Islamic Studies", icon: "BookOpen" }
+  { 
+    id: "islamic", 
+    name: "التربية الإسلامية", 
+    icon: "BookOpen", 
+    color: "text-green-400",
+    lessons: ["الإيمان والغيب", "الإيمان والعلم", "صلح الحديبية وفتح مكة", "فقه الأسرة: الزواج", "فقه الأسرة: الطلاق", "حق الله: الوفاء بالأمانة والمسؤولية", "سورة يوسف"]
+  },
+  { 
+    id: "history_geo", 
+    name: "الاجتماعيات", 
+    icon: "Globe", 
+    color: "text-blue-400",
+    priorityLessons: [
+      "ت: التحولات الاقتصادية والمالية والاجتماعية والفكرية (ق19)",
+      "ت: التنافس الإمبريالي واندلاع الحرب العالمية الأولى",
+      "ت: اليقظة الفكرية بالمشرق العربي",
+      "ت: الضغوط الاستعمارية على المغرب ومحاولات الإصلاح",
+      "ج: مفهوم التنمية (تعدد المقاربات، التقسيمات الكبرى)",
+      "ج: المجال المغربي (الموارد الطبيعية والبشرية)",
+      "ج: الاختيارات الكبرى لسياسة إعداد التراب الوطني",
+      "ج: التهيئة الحضرية والريفية (أزمة المدينة والأرياف)"
+    ],
+    lessons: ["الاتحاد الأوروبي", "الصين قوة اقتصادية صاعدة"]
+  },
+  { 
+    id: "arabic", 
+    name: "اللغة العربية", 
+    icon: "Scroll", 
+    color: "text-orange-400",
+    priorityLessons: ["منهجية تحليل النص الإشهاري", "منهجية تحليل النص الصحفي", "الاستعارة (تعريفها وأركانها)", "الطباق ولمقابلة", "الأمر والنهي (الأساليب الإنشائية)"],
+    lessons: ["قضية التكنولوجيا", "مفهوم الحداثة", "مفهوم التواصل", "قيمة التسامح", "الإنسان ومشاكل البيئة"]
+  },
+  { 
+    id: "french", 
+    name: "Français", 
+    icon: "Feather", 
+    color: "text-purple-400",
+    lessons: ["La Boîte à Merveilles", "Antigone", "Le Dernier Jour d'un Condamné", "Les figures de style", "Production écrite: Plan dialectique", "Le registre tragique"]
+  }
 ];
+
+export const HUNTER_NOTIFICATIONS = {
+  sleep: [
+    "HUNTER, YOUR MANA RESERVES ARE CRITICAL. RETIRE TO YOUR SHELTER IMMEDIATELY.",
+    "SYSTEM ALERT: REGENERATION CYCLE REQUIRED. SLEEP NOW OR FACE STAMINA PENALTY.",
+    "THE SHADOWS ARE DEEPENING. REST, MONARCH. YOUR ARMY WILL WAIT UNTIL DAWN.",
+    "FATIGUE DETECTED. CEASE ALL TRAINING. COMMENCING MANDATORY SLEEP PROTOCOL."
+  ],
+  rest: [
+    "OVERHEATING DETECTED. TAKE A SHORT BREAK TO CALIBRATE YOUR INTELLECT.",
+    "STAMINA IS DEPLETED. RETREAT FOR 10 MINUTES TO AVOID BRAIN FOG DEBUFF.",
+    "A HUNTER WHO NEVER RESTS IS A DEAD HUNTER. STEP AWAY FROM THE SCREEN.",
+    "SYSTEM WARNING: STRESS LEVELS RISING. CONSUME WATER AND RELAX FOR A MOMENT."
+  ],
+  emergency: [
+    "EMERGENCY MISSION: A REGIONAL GATE HAS OPENED! CLEAR IT NOW!",
+    "URGENT REQUEST DETECTED: THE ELDER DEITIES REQUIRE YOUR KNOWLEDGE.",
+    "RED GATE OPENING! COMPLETE A QUICK REVISION TO PREVENT COLLAPSE.",
+    "HIDDEN MISSION TRIGGERED: EXCLUSIVE REWARDS FOR STUDYING THE NEXT 15 MINS."
+  ]
+};

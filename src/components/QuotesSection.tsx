@@ -40,7 +40,7 @@ export default function QuotesSection() {
               "{quote.text}"
             </p>
             <span className="text-right text-xs font-mono text-system-neon italic">
-              — {quote.author}
+              — {quote.author} {(quote as any).anime && <span className="opacity-50 ml-1">[{ (quote as any).anime }]</span>}
             </span>
           </motion.div>
         </div>

@@ -12,6 +12,8 @@ import {
   Clock, 
   BarChart3,
   Bell,
+  BellRing,
+  Zap,
   ShoppingBag,
   User as UserIcon
 } from 'lucide-react';
@@ -50,7 +52,18 @@ import Login from './components/Login';
 import Onboarding from './components/Onboarding';
 import AIPenaltyVerifier from './components/AIPenaltyVerifier';
 import { UserStats, Quest, Rank } from './types';
-import { INITIAL_STATS, RANK_ORDER, EXP_PER_LEVEL, AVAILABLE_TITLES, GET_RANDOM_PENALTY } from './constants';
+import { 
+  INITIAL_STATS, 
+  RANK_ORDER, 
+  EXP_PER_LEVEL, 
+  AVAILABLE_TITLES, 
+  GET_RANDOM_PENALTY, 
+  getRankIndexForLevel, 
+  getCurrencyForTitle,
+  HUNTER_NOTIFICATIONS,
+  SUBJECTS,
+  EXAM_DATE
+} from './constants';
 import TitleSelector from './components/TitleSelector';
 
 export default function App() {
@@ -67,7 +80,91 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<'dashboard' | 'quests' | 'skills' | 'timer' | 'store' | 'ranks' | 'profile'>('dashboard');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isTitleModalOpen, setIsTitleModalOpen] = useState(false);
+  const [isEmergencyActive, setIsEmergencyActive] = useState(false);
   const hasCheckedPenalty = useRef(false);
+  const lastTimeCheck = useRef<number>(0);
+
+  // --- TIME MONITORING & EMERGENCY MISSIONS ---
+  useEffect(() => {
+    if (!user || loading) return;
+
+    const interval = setInterval(() => {
+      const now = new Date();
+      const hour = now.getHours();
+      const minutes = now.getMinutes();
+      const currentTime = hour * 60 + minutes;
+
+      // Avoid double triggering within the same minute
+      if (currentTime === lastTimeCheck.current) return;
+      lastTimeCheck.current = currentTime;
+
+      // 1. Sleep Notification (10 PM - 5 AM)
+      if (hour >= 22 || hour < 5) {
+        if (minutes === 0 || minutes === 30) {
+          const msg = HUNTER_NOTIFICATIONS.sleep[Math.floor(Math.random() * HUNTER_NOTIFICATIONS.sleep.length)];
+          notify(msg, 'danger');
+          speak(msg);
+        }
+      }
+
+      // 2. Rest Notification (Every hour at 45 mins)
+      if (minutes === 45) {
+        const msg = HUNTER_NOTIFICATIONS.rest[Math.floor(Math.random() * HUNTER_NOTIFICATIONS.rest.length)];
+        notify(msg, 'info');
+        speak(msg);
+      }
+
+      // 3. Emergency Mission Spawning (1% chance every minute)
+      if (Math.random() < 0.01) {
+        spawnEmergencyQuest();
+      }
+    }, 60000); // Check every minute
+
+    return () => clearInterval(interval);
+  }, [user, loading]);
+
+  const spawnEmergencyQuest = async () => {
+    if (!user) return;
+    const prioritizeSubjects = ['history_geo', 'arabic'];
+    const filteredSubjects = SUBJECTS.filter(s => prioritizeSubjects.includes(s.id));
+    
+    // 70% chance to pick a priority subject during the 20-day countdown
+    const targetSubject = (Math.random() < 0.7) 
+      ? filteredSubjects[Math.floor(Math.random() * filteredSubjects.length)]
+      : SUBJECTS[Math.floor(Math.random() * SUBJECTS.length)];
+
+    const lessons = (targetSubject as any).priorityLessons || (targetSubject as any).lessons || [targetSubject.name];
+    const randomLesson = lessons[Math.floor(Math.random() * lessons.length)];
+
+    const msgTemplate = HUNTER_NOTIFICATIONS.emergency[Math.floor(Math.random() * HUNTER_NOTIFICATIONS.emergency.length)];
+    const msg = msgTemplate.replace("[SUBJECT]", targetSubject.name);
+    
+    notify(msg, 'warning');
+    speak(msg);
+    setIsEmergencyActive(true);
+    setTimeout(() => setIsEmergencyActive(false), 5000);
+
+    const emergencyQuest: Partial<Quest> = {
+      title: `ULTIMATE MISSION: ${randomLesson}`,
+      description: `ULTIMATE REVISION PHASE: Focus on "${randomLesson}" from ${targetSubject.name}. Time is running out, Hunter!`,
+      type: 'main',
+      difficulty: 'Legendary',
+      category: targetSubject.id,
+      exp: 1000, 
+      gold: 500,
+      completed: false,
+      status: 'active',
+      dueDate: new Date(Date.now() + 20 * 60 * 1000).toISOString(), // 20 minutes limit!
+      userId: user.uid,
+      createdAt: new Date().toISOString()
+    };
+
+    try {
+      await addDoc(collection(db, 'users', user.uid, 'quests'), emergencyQuest);
+    } catch (err) {
+      handleFirestoreError(err, OperationType.CREATE, `users/${user.uid}/quests`);
+    }
+  };
 
   // --- AUTH LISTENERS ---
   useEffect(() => {
@@ -241,9 +338,10 @@ export default function App() {
           lastActive: now.toISOString(),
           penaltyActive: true,
           penaltyReason: "LONG INACTIVITY DETECTED: " + GET_RANDOM_PENALTY(),
-          penaltyDeadline: new Date(now.getTime() + 24 * 60 * 60 * 1000).toISOString()
+          penaltyDeadline: new Date(now.getTime() + 24 * 60 * 60 * 1000).toISOString(),
+          lockdownUntil: new Date(now.getTime() + 5 * 60 * 1000).toISOString()
         });
-        notify("SYSTEM WARNING: PENALTY QUEST GENERATED", "danger");
+        notify("SYSTEM ERROR: LOCKDOWN INITIATED", "danger");
       } else if (diffHours > 24) {
         // If daily quests were not finished, trigger penalty
         const unfinishedDailies = quests.filter(q => q.type === 'daily' && !q.completed);
@@ -260,6 +358,7 @@ export default function App() {
             penaltyActive: true,
             penaltyReason: "INCOMPLETE DAILY MISSIONS: " + GET_RANDOM_PENALTY(),
             penaltyDeadline: new Date(now.getTime() + 12 * 60 * 60 * 1000).toISOString(),
+            lockdownUntil: new Date(now.getTime() + 5 * 60 * 1000).toISOString(),
             lastActive: now.toISOString()
           });
           notify("PENALTY MISSION ACTIVATED: MISSION FAILURE", "danger");
@@ -280,7 +379,31 @@ export default function App() {
   // --- HELPERS ---
   const notify = useCallback((text: string, type: any = 'info') => {
     setNotifications(prev => [...prev, { id: Date.now(), text, type }]);
+
+    // Native Browser Notifications
+    if (Notification.permission === "granted") {
+      try {
+        new Notification("SYSTEM MESSAGE", {
+          body: text,
+          icon: "https://cdn-icons-png.flaticon.com/512/3064/3064155.png", // Hunter Icon
+          tag: "hunter-system-alert"
+        });
+      } catch (e) {
+        console.error("Browser notification failed", e);
+      }
+    }
   }, []);
+
+  const requestNotificationPermissions = () => {
+    if ("Notification" in window) {
+      Notification.requestPermission().then(permission => {
+        if (permission === "granted") {
+          notify("SENSES INITIALIZED: SYSTEM ALERTS ARE NOW LINKED TO REALITY.", "success");
+          speak("SYSTEM ALERTS ARE NOW LINKED TO REALITY. YOU WILL BE NOTIFIED OF ALL THREATS.");
+        }
+      });
+    }
+  };
 
   const addExp = useCallback(async (amount: number, category?: string, additionalUpdates: any = {}) => {
     if (!user) return;
@@ -299,7 +422,7 @@ export default function App() {
       notify(msg, 'success');
       speak(msg);
       
-      const rankIdx = Math.floor((newLevel - 1) / 5);
+      const rankIdx = getRankIndexForLevel(newLevel);
       if (rankIdx < RANK_ORDER.length && RANK_ORDER[rankIdx] !== newRank) {
         newRank = RANK_ORDER[rankIdx];
         const rankMsg = `RANK UP! NEW RANK: ${newRank}-RANK`;
@@ -310,6 +433,11 @@ export default function App() {
 
     const goldEarned = Math.floor(amount * 0.8);
     const totalExpNow = (stats.totalExpEarned || 0) + amount;
+    
+    if (goldEarned > 0) {
+      const currency = getCurrencyForTitle(stats.activeTitle || "");
+      notify(`REWARD: +${goldEarned} ${currency.name}`, 'success');
+    }
     
     // Merge updates
     const finalUpdate = { 
@@ -437,9 +565,10 @@ export default function App() {
         exp: Math.max(-9999, newExp),
         penaltyReason: generatedPenalty,
         penaltyAssignedAt: new Date().toISOString(),
-        penaltyDeadline: new Date(Date.now() + 12 * 60 * 60 * 1000).toISOString()
+        penaltyDeadline: new Date(Date.now() + 12 * 60 * 60 * 1000).toISOString(),
+        lockdownUntil: new Date(Date.now() + 5 * 60 * 1000).toISOString()
       });
-      notify("MISSION FAILED. PENALTY ACTIVATED. -200 EXP.", "danger");
+      notify("MISSION FAILED. SYSTEM REBOOTING.", "danger");
       speak("MISSION FAILED. PENALTY PROTOCOL INITIATED. TWO HUNDRED EXP DEDUCTED.");
     } catch (err) {
       handleFirestoreError(err, OperationType.UPDATE, `users/${user.uid}/quests/${id}`);
@@ -558,6 +687,46 @@ export default function App() {
   };
 
   const handleLogout = () => signOut(auth);
+  
+  // --- LOCKDOWN TIMER ---
+  const [lockdownTimeLeft, setLockdownTimeLeft] = useState<number>(0);
+  useEffect(() => {
+    if (!stats.lockdownUntil) {
+      setLockdownTimeLeft(0);
+      return;
+    }
+
+    const interval = setInterval(() => {
+      const remaining = new Date(stats.lockdownUntil!).getTime() - Date.now();
+      if (remaining <= 0) {
+        setLockdownTimeLeft(0);
+        clearInterval(interval);
+        // We don't automatically clear stats.lockdownUntil here to stay in sync with Firestore
+      } else {
+        setLockdownTimeLeft(Math.ceil(remaining / 1000));
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [stats.lockdownUntil]);
+
+  // --- THEME SYNC ---
+  useEffect(() => {
+    if (!stats.activeTitle) return;
+    
+    const activeTitleObj = AVAILABLE_TITLES.find(t => t.name === stats.activeTitle);
+    if (!activeTitleObj?.theme) return;
+
+    // Convert hex to RGB for the CSS variable
+    const hex = activeTitleObj.theme.color;
+    const r = parseInt(hex.slice(1, 3), 16);
+    const g = parseInt(hex.slice(3, 5), 16);
+    const b = parseInt(hex.slice(5, 7), 16);
+    
+    document.documentElement.style.setProperty('--system-neon-rgb', `${r}, ${g}, ${b}`);
+    
+    // Also update any other specific theme properties if needed
+  }, [stats.activeTitle]);
 
   const [isPardoning, setIsPardoning] = useState(false);
   const [isSacrificing, setIsSacrificing] = useState(false);
@@ -742,6 +911,19 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-system-bg text-slate-100 font-sans selection:bg-system-neon/30 overflow-x-hidden">
+      {/* EMERGENCY SYSTEM OVERLAY */}
+      <AnimatePresence>
+        {isEmergencyActive && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: [0, 0.4, 0, 0.4, 0] }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 1.5, repeat: 2 }}
+            className="fixed inset-0 z-[9999] pointer-events-none border-[20px] border-red-600/50 shadow-[inset_0_0_100px_rgba(220,38,38,0.5)] bg-red-900/10"
+          />
+        )}
+      </AnimatePresence>
+
       {/* HUD HEADER */}
       <header className="sticky top-0 z-40 w-full h-16 border-b border-white/5 bg-system-bg/80 backdrop-blur-md flex items-center justify-between px-6">
         <div className="flex items-center gap-3">
@@ -792,6 +974,39 @@ export default function App() {
             </div>
 
             <div className="pt-8 mt-auto flex flex-col gap-4 border-t border-white/10">
+              <div className="px-3 py-4 bg-red-500/10 border border-red-500/30 rounded-xl relative overflow-hidden group">
+                 <div className="absolute top-0 right-0 p-1 opacity-20">
+                    <Zap size={40} className="text-red-500" />
+                 </div>
+                 <div className="relative z-10">
+                    <div className="flex items-center gap-2 mb-1">
+                       <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+                       <span className="text-[10px] font-mono text-red-400 font-bold uppercase tracking-widest">D-DAY COUNTDOWN</span>
+                    </div>
+                    <div className="text-3xl font-display font-black text-white italic">
+                       {Math.max(0, Math.ceil((new Date(EXAM_DATE).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)))}
+                       <span className="text-sm ml-2 text-red-500/80">DAYS LEFT</span>
+                    </div>
+                    <div className="mt-2 text-[8px] font-mono text-white/50 uppercase leading-tight">
+                       Ultimate Revision Phase: Active<br/>
+                       Priority: History & Geography
+                    </div>
+                 </div>
+              </div>
+
+              <button 
+                onClick={requestNotificationPermissions}
+                className="flex items-center gap-3 px-3 py-2 text-system-neon hover:bg-system-neon/10 transition-all border border-system-neon/20 rounded-lg group"
+              >
+                <div className="text-system-neon group-hover:scale-110 transition-transform">
+                  <BellRing size={18} />
+                </div>
+                <div className="flex flex-col items-start translate-y-[1px]">
+                  <span className="text-[10px] font-mono leading-tight">INITIALIZE SENSES</span>
+                  <span className="text-[8px] font-mono text-white/40 leading-tight">BROWSER NOTIFICATIONS</span>
+                </div>
+              </button>
+
               <div className="flex items-center gap-3 px-3">
                  <div className="p-2 rounded bg-system-neon/10 text-system-neon">
                     <Bell size={18} />
@@ -876,7 +1091,7 @@ export default function App() {
               )}
 
               {activeTab === 'store' && (
-                <StoreSection gold={stats.gold} onBuy={handleBuyItem} />
+                <StoreSection gold={stats.gold} onBuy={handleBuyItem} activeTitle={stats.activeTitle || ""} />
               )}
 
               {activeTab === 'ranks' && (
@@ -1011,6 +1226,93 @@ export default function App() {
              stats={stats}
              skills={skills}
           />
+        )}
+      </AnimatePresence>
+
+      {/* LOCKDOWN OVERLAY */}
+      <AnimatePresence>
+        {lockdownTimeLeft > 0 && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[999] bg-black/95 backdrop-blur-xl flex flex-col items-center justify-center p-6 text-center overflow-hidden"
+          >
+            {/* Scanline Effect */}
+            <div className="absolute inset-0 pointer-events-none opacity-20 bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))] bg-[length:100%_4px,3px_100%]" />
+            
+            <motion.div
+              animate={{ 
+                boxShadow: [
+                  "0 0 40px rgba(var(--system-neon-rgb), 0.1)",
+                  "0 0 80px rgba(var(--system-neon-rgb), 0.3)",
+                  "0 0 40px rgba(var(--system-neon-rgb), 0.1)"
+                ]
+              }}
+              transition={{ duration: 2, repeat: Infinity }}
+              className="relative z-10 w-full max-w-lg p-10 border-2 border-system-neon/30 bg-black/40 rounded-3xl"
+            >
+              <motion.div
+                animate={{ scale: [1, 1.05, 1] }}
+                transition={{ duration: 4, repeat: Infinity }}
+                className="mb-8"
+              >
+                <Shield size={80} className="text-system-neon mx-auto filter drop-shadow-[0_0_15px_rgba(var(--system-neon-rgb),0.5)]" />
+              </motion.div>
+
+              <h1 className="text-4xl font-display font-black italic tracking-tighter text-white mb-2 uppercase">
+                System Lockdown
+              </h1>
+              <p className="text-system-neon font-mono text-xs uppercase tracking-[0.3em] mb-8 opacity-70">
+                Critical Error: Violation Detected
+              </p>
+
+              <div className="flex flex-col gap-4 mb-8">
+                <div className="p-4 bg-system-neon/5 border border-system-neon/20 rounded-xl">
+                  <p className="text-[10px] font-mono text-white/40 uppercase mb-1">Reason</p>
+                  <p className="text-sm font-medium text-white/80 italic">
+                    "{stats.penaltyReason || "INTEGRITY PROTOCOL BREACH"}"
+                  </p>
+                </div>
+                
+                <div className="grid grid-cols-1 gap-2">
+                  <div className="flex justify-between items-center px-4 py-2 bg-white/5 rounded-lg border border-white/5">
+                    <span className="text-[10px] font-mono text-white/40 uppercase">Status</span>
+                    <span className="text-[10px] font-mono text-system-danger uppercase animate-pulse font-bold">REBOOTING...</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="relative h-2 bg-white/5 rounded-full overflow-hidden mb-4">
+                  <motion.div 
+                    className="absolute inset-y-0 left-0 bg-system-neon"
+                    initial={{ width: "100%" }}
+                    animate={{ width: `${(lockdownTimeLeft / 300) * 100}%` }}
+                    transition={{ duration: 1, ease: "linear" }}
+                  />
+              </div>
+
+              <div className="text-6xl font-display font-black italic tracking-tighter text-white tabular-nums">
+                {Math.floor(lockdownTimeLeft / 60)}:{(lockdownTimeLeft % 60).toString().padStart(2, '0')}
+              </div>
+              <p className="text-[10px] font-mono text-white/20 uppercase tracking-widest mt-2">
+                System Access Suspended
+              </p>
+            </motion.div>
+
+            <motion.div
+              initial={{ y: 100, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              className="mt-12 flex flex-col items-center gap-2"
+            >
+              <div className="flex items-center gap-2 px-4 py-2 bg-system-neon/10 border border-system-neon/20 rounded-full">
+                <div className="w-2 h-2 rounded-full bg-system-neon animate-ping" />
+                <span className="text-[10px] font-mono text-system-neon font-bold uppercase tracking-widest leading-none">
+                  Restoring Matrix Balance
+                </span>
+              </div>
+            </motion.div>
+          </motion.div>
         )}
       </AnimatePresence>
 

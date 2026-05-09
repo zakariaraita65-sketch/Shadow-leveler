@@ -23,8 +23,24 @@ interface QuestSectionProps {
 
 export default function QuestSection({ quests = [], onToggle, onDelete, onAdd, onStart, onFail }: QuestSectionProps) {
   console.log(`[RENDER] QuestSection received ${quests?.length || 0} quests`);
-  const dailyQuests = (quests || []).filter(q => q.type === "daily" || !q.type);
-  const mainQuests = (quests || []).filter(q => q.type === "main");
+  const sortQuests = (questList: Quest[]) => {
+    return [...questList].sort((a, b) => {
+      // Prioritize active quests
+      if (a.status === 'active' && b.status !== 'active') return -1;
+      if (b.status === 'active' && a.status !== 'active') return 1;
+      
+      // Keep completed/failed at the bottom
+      const aDone = a.completed || a.status === 'failed';
+      const bDone = b.completed || b.status === 'failed';
+      if (aDone && !bDone) return 1;
+      if (bDone && !aDone) return -1;
+      
+      return 0; // Maintain relative order for same status
+    });
+  };
+
+  const dailyQuests = sortQuests((quests || []).filter(q => q.type === "daily" || !q.type));
+  const mainQuests = sortQuests((quests || []).filter(q => q.type === "main"));
 
   return (
     <div className="flex flex-col gap-6">
@@ -234,7 +250,7 @@ function QuestCard({ quest, onToggle, onDelete, onStart, onFail }: QuestCardProp
               <ScrollText size={10} /> {quest.category}
             </span>
             <span className="flex items-center gap-1 text-system-neon uppercase">
-               +{quest.expReward} EXP
+               +{quest.exp} EXP
             </span>
             {quest.status === 'failed' && (
               <span className="flex items-center gap-1 text-system-danger uppercase font-bold ml-auto">
