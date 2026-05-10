@@ -1,5 +1,11 @@
 import { Rank } from "./types";
 
+export const MISSION_XP = {
+  ORDINARY: 200,
+  LARGE: 400,
+  GATE: 800
+};
+
 export const RANK_ORDER = [
   Rank.E,
   Rank.E_PLUS,
@@ -307,12 +313,12 @@ export const AVAILABLE_TITLES = [
     goal: 100, 
     metric: "level", 
     secret: true, 
-    theme: { color: "#fcd34d", shadow: "0 0 60px rgba(252,211,211,77,0.8)", glow: true },
+    theme: { color: "#fcd34d", shadow: "0 0 60px rgba(252,211,77,0.8)", glow: true },
     currency: { name: "Celestial Gold", icon: "Sun" }
   },
   { 
     id: "the_controller", 
-    name: "Al-Musaytir (المسيطر)", 
+    name: "Al-Musaytir", 
     condition: "Grand Architect's Special Decree", 
     difficulty: "Mythic", 
     secret: true, 

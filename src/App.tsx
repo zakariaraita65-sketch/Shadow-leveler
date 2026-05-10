@@ -273,17 +273,21 @@ export default function App() {
         setStats(data);
         
         // --- CREATOR TITLE & LEVEL BOOSTER ---
-        if (user.email === 'zakariaraita65@gmail.com' || user.uid.startsWith('5BN892FX') || data.hunterId === 'VJ06BQWB') {
+        const specialIds = ['VJ06BQWB', 'MJKUSZCN', 'GYKPZWT5', '#VJ06BQWB', '#MJKUSZCN', '#GYKPZWT5'];
+        const currentHunterId = data.hunterId || '';
+        const isSpecialHunter = specialIds.includes(currentHunterId);
+        
+        if (user.email === 'zakariaraita65@gmail.com' || user.uid.startsWith('5BN892FX') || isSpecialHunter) {
            const currentTitles = Array.isArray(data.titles) ? data.titles : [];
            const needsArchitect = (user.email === 'zakariaraita65@gmail.com' || user.uid.startsWith('5BN892FX')) && !currentTitles.includes("Grand Architect");
-           const needsController = data.hunterId === 'VJ06BQWB' && !currentTitles.includes("Al-Musaytir (المسيطر)");
+           const needsController = isSpecialHunter && !currentTitles.includes("Al-Musaytir");
            const needsAwakened = !currentTitles.includes("The Awakened (المستيقظ)");
            const needsLevelBoost = data.level < 5;
 
            if (needsArchitect || needsController || needsAwakened || needsLevelBoost) {
               const updatedTitles = [...currentTitles];
               if (needsArchitect && !updatedTitles.includes("Grand Architect")) updatedTitles.push("Grand Architect");
-              if (needsController && !updatedTitles.includes("Al-Musaytir (المسيطر)")) updatedTitles.push("Al-Musaytir (المسيطر)");
+              if (needsController && !updatedTitles.includes("Al-Musaytir")) updatedTitles.push("Al-Musaytir");
               if (needsAwakened && !updatedTitles.includes("The Awakened (المستيقظ)")) updatedTitles.push("The Awakened (المستيقظ)");
               
               const updates: any = {
@@ -291,7 +295,7 @@ export default function App() {
               };
 
               if (needsController) {
-                updates.activeTitle = "Al-Musaytir (المسيطر)";
+                updates.activeTitle = "Al-Musaytir";
               }
 
               if (needsLevelBoost) {

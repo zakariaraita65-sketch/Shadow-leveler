@@ -14,6 +14,7 @@ export default function AddQuestModal({ onClose, onAdd }: AddQuestModalProps) {
   const [minutes, setMinutes] = useState(0);
 
   const [type, setType] = useState<"daily" | "main">("daily");
+  const [scale, setScale] = useState<"ordinary" | "large" | "gate">("ordinary");
   const [category, setCategory] = useState(SUBJECTS[0].id);
 
   const [error, setError] = useState(false);
@@ -26,15 +27,17 @@ export default function AddQuestModal({ onClose, onAdd }: AddQuestModalProps) {
     }
 
     const durationInMinutes = hours * 60 + minutes;
-    if (durationInMinutes <= 0) {
-       // fallback
-    }
+    
+    let expReward = 200;
+    if (scale === "large") expReward = 400;
+    if (scale === "gate") expReward = 800;
 
     const questPayload: any = {
       title: title.trim(),
       type,
+      scale,
       category,
-      expReward: 900,
+      expReward,
       dueDate: new Date().toISOString(),
       duration: durationInMinutes,
       status: "pending"
@@ -100,9 +103,36 @@ export default function AddQuestModal({ onClose, onAdd }: AddQuestModalProps) {
                   </div>
                </div>
 
-               <div className="flex gap-4">
-                  <div className="flex flex-col flex-1 gap-2">
-                     <label className="text-[10px] font-mono text-white/40 uppercase">Mission Type</label>
+                <div className="flex flex-col gap-2">
+                   <label className="text-[10px] font-mono text-white/40 uppercase">Mission Scale</label>
+                   <div className="grid grid-cols-3 gap-2">
+                      <button 
+                         type="button" 
+                         onClick={() => setScale("ordinary")} 
+                         className={`px-4 py-3 rounded border transition-all text-[10px] font-mono uppercase tracking-widest ${scale === 'ordinary' ? 'bg-system-neon/10 border-system-neon text-system-neon' : 'bg-white/5 border-white/10 text-white/40'}`}
+                      >
+                         Ordinary
+                      </button>
+                      <button 
+                         type="button" 
+                         onClick={() => setScale("large")} 
+                         className={`px-4 py-3 rounded border transition-all text-[10px] font-mono uppercase tracking-widest ${scale === 'large' ? 'bg-orange-500/10 border-orange-500 text-orange-500' : 'bg-white/5 border-white/10 text-white/40'}`}
+                      >
+                         Large
+                      </button>
+                      <button 
+                         type="button" 
+                         onClick={() => setScale("gate")} 
+                         className={`px-4 py-3 rounded border transition-all text-[10px] font-mono uppercase tracking-widest ${scale === 'gate' ? 'bg-red-500/10 border-red-500 text-red-500 shadow-[0_0_15px_rgba(239,68,68,0.2)] font-black' : 'bg-white/5 border-white/10 text-white/40'}`}
+                      >
+                         Gate
+                      </button>
+                   </div>
+                </div>
+
+                <div className="flex gap-4">
+                   <div className="flex flex-col flex-1 gap-2">
+                      <label className="text-[10px] font-mono text-white/40 uppercase">Mission Type</label>
                      <select 
                         value={type}
                         onChange={(e) => setType(e.target.value as any)}

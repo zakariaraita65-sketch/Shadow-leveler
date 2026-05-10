@@ -12,6 +12,7 @@ interface LeaderboardEntry {
   rank: string;
   activeTitle?: string;
   photoURL?: string;
+  hunterId?: string;
 }
 
 export const Leaderboard: React.FC = () => {
@@ -134,6 +135,20 @@ export const Leaderboard: React.FC = () => {
                   <span className="font-bold text-white group-hover:text-system-neon transition-colors truncate">
                     {leader.displayName || 'ANONYMOUS HUNTER'}
                   </span>
+                  {(leader.hunterId === 'GYKPZWT5' || leader.hunterId === '#GYKPZWT5' || leader.uid === '5BN892FX' || leader.uid === 'zakariaraita65@gmail.com') && (
+                    <motion.div
+                      animate={{ scale: [1, 1.2, 1], rotate: [0, 10, -10, 0] }}
+                      transition={{ duration: 2, repeat: Infinity }}
+                      className="shrink-0 flex items-center gap-1"
+                    >
+                      <Crown size={14} className="text-yellow-400 drop-shadow-[0_0_8px_rgba(250,204,21,0.8)] fill-yellow-400" />
+                      {leader.uid === 'zakariaraita65@gmail.com' && (
+                        <span className="text-[10px] font-black text-system-neon bg-system-neon/10 px-1.5 py-0.5 rounded border border-system-neon/30 animate-pulse">
+                          SYSTEM ARCHITECT
+                        </span>
+                      )}
+                    </motion.div>
+                  )}
                   <span className="shrink-0 px-1.5 py-0.5 rounded text-[9px] font-black bg-white/10 text-white/60 border border-white/10">
                     LVL {leader.level}
                   </span>
