@@ -1,8 +1,9 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, useAnimation } from "motion/react";
 import { LayoutDashboard, Swords, Sparkles, Clock, ShoppingBag, Fingerprint } from "lucide-react";
-import { signInWithFingerprint, signInWithGoogle } from "../firebase";
+import { signInWithFingerprint, signInWithGoogle, loginWithId, registerWithId } from "../firebase";
 import SystemLogo from "./SystemLogo";
+import { KeyRound, User as UserIcon, LogIn, UserPlus } from "lucide-react";
 
 interface LoginProps {
   onLoginProgress: (progress: boolean) => void;
@@ -15,8 +16,42 @@ export default function Login({ onLoginProgress }: LoginProps) {
   const controls = useAnimation();
 
   const [isLoading, setIsLoading] = useState(false);
-
   const [showScanner, setShowScanner] = useState(false);
+  const [isManual, setIsManual] = useState(false);
+  const [isRegistering, setIsRegistering] = useState(false);
+  const [hunterId, setHunterId] = useState("");
+  const [hunterPass, setHunterPass] = useState("");
+
+  const handleManualAuth = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!hunterId || !hunterPass) return;
+
+    // Validate ID: no spaces, only alphanumeric and basic symbols
+    if (hunterId.includes(" ")) {
+      setError("ID_INVALID: Hunter ID cannot contain spaces.");
+      return;
+    }
+
+    try {
+      setError(null);
+      setIsLoading(true);
+      if (isRegistering) {
+        await registerWithId(hunterId, hunterPass);
+      } else {
+        await loginWithId(hunterId, hunterPass);
+      }
+    } catch (err: any) {
+      console.error("Manual Auth failed", err);
+      let message = "Authentication failed.";
+      if (err.code === 'auth/user-not-found') message = "ID_NOT_FOUND: This Hunter ID does not exist. / هذا الرقم غير موجود";
+      if (err.code === 'auth/wrong-password') message = "PASS_INCORRECT: Matrix signature mismatch. / كلمة السر خاطئة";
+      if (err.code === 'auth/email-already-in-use') message = "ID_TAKEN: This ID is already claimed. / هذا الرقم محجوز";
+      if (err.code === 'auth/weak-password') message = "WEAK_PASS: Security requires 6+ chars. / كلمة السر ضعيفة";
+      if (err.code === 'auth/operation-not-allowed') message = "SYSTEM_ERROR: ID Login is disabled in Matrix core. / النظام اليدوي معطل حالياً";
+      setError(message);
+      setIsLoading(false);
+    }
+  };
 
   const handleLogin = async () => {
     try {
@@ -121,17 +156,32 @@ export default function Login({ onLoginProgress }: LoginProps) {
 
            <div className="flex flex-col gap-4 w-full">
               <button 
-                onClick={() => setShowScanner(true)}
+                onClick={() => {
+                  setShowScanner(true);
+                  setIsManual(false);
+                }}
                 className="w-full py-4 bg-system-neon text-black font-display font-black italic tracking-widest text-lg rounded-xl hover:scale-[1.02] active:scale-95 transition-all shadow-[0_0_20px_rgba(34,211,238,0.4)]"
               >
                 INITIALIZE SYSTEM / بدء النظام
               </button>
-              <button 
-                 onClick={handleGoogleLogin}
-                 className="w-full py-3 border border-white/10 text-white/50 font-mono text-xs tracking-widest uppercase hover:bg-white/5 transition-colors rounded-xl"
-              >
-                 Direct Authentication / تسجيل دخول مباشر
-              </button>
+              
+              <div className="flex gap-2">
+                <button 
+                  onClick={handleGoogleLogin}
+                  className="flex-1 py-3 border border-white/10 text-white/50 font-mono text-xs tracking-widest uppercase hover:bg-white/5 transition-colors rounded-xl flex items-center justify-center gap-2"
+                >
+                  Google
+                </button>
+                <button 
+                  onClick={() => {
+                    setShowScanner(true);
+                    setIsManual(true);
+                  }}
+                  className="flex-1 py-3 border border-white/10 text-white/50 font-mono text-xs tracking-widest uppercase hover:bg-white/5 transition-colors rounded-xl flex items-center justify-center gap-2"
+                >
+                  Hunter ID
+                </button>
+              </div>
            </div>
            
            <span className="text-[10px] font-mono text-white/20 uppercase tracking-widest">
@@ -163,56 +213,127 @@ export default function Login({ onLoginProgress }: LoginProps) {
 
         <div className="flex flex-col items-center gap-8 w-full mt-12 relative">
           
-          {/* Fingerprint Scanner Ring */}
-          <div className="relative w-40 h-40 flex items-center justify-center">
-            {isPressing && (
-              <motion.div
-                initial={{ scale: 0.8, opacity: 0 }}
-                animate={{ scale: 1.5, opacity: 0 }}
-                transition={{ duration: 1.5, repeat: Infinity }}
-                className="absolute inset-0 bg-system-neon rounded-full"
-              />
-            )}
-            
-            <motion.div
-              animate={isPressing ? { rotate: 180 } : { rotate: 0 }}
-              transition={{ duration: 1.5, ease: "linear" }}
-              className={`absolute -inset-4 border-2 border-dashed rounded-full ${isPressing ? 'border-system-neon' : 'border-system-neon/30'}`}
-            />
-            
-            <motion.button
-              animate={controls}
-              onMouseDown={startPress}
-              onMouseUp={cancelPress}
-              onMouseLeave={cancelPress}
-              onTouchStart={startPress}
-              onTouchEnd={cancelPress}
-              onContextMenu={(e) => e.preventDefault()}
-              className={`w-32 h-32 rounded-full select-none touch-none system-border flex flex-col items-center justify-center transition-colors duration-300 relative z-10 ${
-                isPressing ? 'bg-system-neon/20 shadow-[0_0_50px_rgba(34,211,238,0.5)] border-system-neon' : 'bg-system-card'
-              }`}
-            >
-              <SystemLogo color="#00f2ff" size={64} glow={isPressing} />
-            </motion.button>
-          </div>
+          {isManual ? (
+            <form onSubmit={handleManualAuth} className="w-full max-w-sm flex flex-col gap-6">
+              <div className="flex flex-col gap-4">
+                <div className="flex flex-col gap-2 text-left">
+                  <label className="text-[10px] font-mono text-white/40 uppercase tracking-[0.2em]">Hunter ID / الرقم التعريفي</label>
+                  <div className="relative">
+                    <UserIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-system-neon/50" size={16} />
+                    <input 
+                      type="text"
+                      required
+                      value={hunterId}
+                      onChange={(e) => setHunterId(e.target.value)}
+                      placeholder="Username or ID"
+                      className="w-full bg-white/5 border border-white/10 rounded-lg py-3 pl-10 pr-4 text-white focus:border-system-neon outline-none transition-all font-mono"
+                    />
+                  </div>
+                </div>
 
-          <p className="text-xs font-mono text-white/50 uppercase tracking-[0.3em] h-4">
-             {isLoading ? "AUTHENTICATING..." : isPressing ? "SCANNING BIOMETRICS..." : "HOLD TO AUTHENTICATE / اضغط باستمرار"}
-          </p>
+                <div className="flex flex-col gap-2 text-left">
+                  <label className="text-[10px] font-mono text-white/40 uppercase tracking-[0.2em]">Matrix Password / كلمة السر</label>
+                  <div className="relative">
+                    <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 text-system-neon/50" size={16} />
+                    <input 
+                      type="password"
+                      required
+                      value={hunterPass}
+                      onChange={(e) => setHunterPass(e.target.value)}
+                      placeholder="••••••••"
+                      className="w-full bg-white/5 border border-white/10 rounded-lg py-3 pl-10 pr-4 text-white focus:border-system-neon outline-none transition-all font-mono"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <button 
+                type="submit"
+                disabled={isLoading}
+                className="w-full py-4 bg-system-neon text-black font-display font-black italic tracking-widest text-lg rounded-xl hover:scale-[1.02] active:scale-95 transition-all shadow-[0_0_20px_rgba(34,211,238,0.4)] disabled:opacity-50 flex items-center justify-center gap-2 uppercase"
+              >
+                {isLoading ? "Synchronizing..." : isRegistering ? "Confirm Registration" : "Enter the System"}
+                {isRegistering ? <UserPlus size={20} /> : <LogIn size={20} />}
+              </button>
+
+              <button 
+                type="button"
+                onClick={() => setIsRegistering(!isRegistering)}
+                className="text-[10px] font-mono text-system-neon/70 uppercase tracking-[0.2em] hover:text-system-neon"
+              >
+                {isRegistering ? "Already have a matrix signature? Log In" : "New Hunter? Register Signature"}
+              </button>
+            </form>
+          ) : (
+            <>
+              {/* Fingerprint Scanner Ring */}
+              <div className="relative w-40 h-40 flex items-center justify-center">
+                {isPressing && (
+                  <motion.div
+                    initial={{ scale: 0.8, opacity: 0 }}
+                    animate={{ scale: 1.5, opacity: 0 }}
+                    transition={{ duration: 1.5, repeat: Infinity }}
+                    className="absolute inset-0 bg-system-neon rounded-full"
+                  />
+                )}
+                
+                <motion.div
+                  animate={isPressing ? { rotate: 180 } : { rotate: 0 }}
+                  transition={{ duration: 1.5, ease: "linear" }}
+                  className={`absolute -inset-4 border-2 border-dashed rounded-full ${isPressing ? 'border-system-neon' : 'border-system-neon/30'}`}
+                />
+                
+                <motion.button
+                  animate={controls}
+                  onMouseDown={startPress}
+                  onMouseUp={cancelPress}
+                  onMouseLeave={cancelPress}
+                  onTouchStart={startPress}
+                  onTouchEnd={cancelPress}
+                  onContextMenu={(e) => e.preventDefault()}
+                  className={`w-32 h-32 rounded-full select-none touch-none system-border flex flex-col items-center justify-center transition-colors duration-300 relative z-10 ${
+                    isPressing ? 'bg-system-neon/20 shadow-[0_0_50px_rgba(34,211,238,0.5)] border-system-neon' : 'bg-system-card'
+                  }`}
+                >
+                  <SystemLogo color="#00f2ff" size={64} glow={isPressing} />
+                </motion.button>
+              </div>
+
+              <p className="text-xs font-mono text-white/50 uppercase tracking-[0.3em] h-4">
+                 {isLoading ? "AUTHENTICATING..." : isPressing ? "SCANNING BIOMETRICS..." : "HOLD TO AUTHENTICATE / اضغط باستمرار"}
+              </p>
+            </>
+          )}
 
           <div className="flex flex-col gap-2 w-full max-w-[280px]">
+              {!isManual && (
+                <button 
+                  onClick={() => setIsManual(true)}
+                  className="w-full px-6 py-3 bg-white/5 hover:bg-white/10 system-border rounded-lg text-xs font-mono tracking-widest text-white/80 transition-all uppercase flex items-center justify-center gap-2"
+                >
+                  Manual Access / دخول يدوي
+                </button>
+              )}
+              
               <button 
                 onClick={handleGoogleLogin}
                 disabled={isLoading}
                 className="w-full px-6 py-3 bg-white/5 hover:bg-white/10 system-border rounded-lg text-xs font-mono tracking-widest text-white/80 transition-all uppercase flex items-center justify-center gap-2 disabled:opacity-50"
               >
-                Standard Login / تسجيل دخول عادي
+                Standard Login / Google
               </button>
+              
               <button 
-                onClick={() => setShowScanner(false)}
+                onClick={() => {
+                  if (isManual) {
+                    setIsManual(false);
+                  } else {
+                    setShowScanner(false);
+                  }
+                }}
                 className="w-full text-[10px] font-mono text-white/30 uppercase tracking-[0.2em] hover:text-white transition-colors py-2"
               >
-                Back to Entrance / العودة
+                Back / العودة
               </button>
           </div>
 

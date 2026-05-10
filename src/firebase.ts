@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app';
-import { getAuth, GoogleAuthProvider, signInWithPopup, signInAnonymously } from 'firebase/auth';
+import { getAuth, GoogleAuthProvider, signInWithPopup, signInAnonymously, signInWithEmailAndPassword, createUserWithEmailAndPassword, EmailAuthProvider, linkWithCredential } from 'firebase/auth';
 import { getFirestore, doc, getDocFromServer } from 'firebase/firestore';
 import firebaseConfig from '../firebase-applet-config.json';
 
@@ -10,6 +10,24 @@ export const googleProvider = new GoogleAuthProvider();
 
 export const signInWithGoogle = () => signInWithPopup(auth, googleProvider);
 export const signInWithFingerprint = () => signInAnonymously(auth);
+
+export const loginWithId = (id: string, pass: string) => {
+  // Use a dummy domain to allow "ID" based login using Firebase Email Auth
+  const email = id.includes('@') ? id : `${id}@shadowleveler.sys`;
+  return signInWithEmailAndPassword(auth, email, pass);
+};
+
+export const registerWithId = (id: string, pass: string) => {
+  const email = id.includes('@') ? id : `${id}@shadowleveler.sys`;
+  return createUserWithEmailAndPassword(auth, email, pass);
+};
+
+export const linkHunterAccount = async (id: string, pass: string) => {
+  if (!auth.currentUser) throw new Error("No user logged in");
+  const email = id.includes('@') ? id : `${id}@shadowleveler.sys`;
+  const credential = EmailAuthProvider.credential(email, pass);
+  return linkWithCredential(auth.currentUser, credential);
+};
 
 async function testConnection() {
   try {

@@ -273,27 +273,35 @@ export default function App() {
         setStats(data);
         
         // --- CREATOR TITLE & LEVEL BOOSTER ---
-        if (user.email === 'zakariaraita65@gmail.com' || user.uid.startsWith('5BN892FX')) {
+        if (user.email === 'zakariaraita65@gmail.com' || user.uid.startsWith('5BN892FX') || data.hunterId === 'VJ06BQWB') {
            const currentTitles = Array.isArray(data.titles) ? data.titles : [];
-           const needsArchitect = !currentTitles.includes("Grand Architect");
+           const needsArchitect = (user.email === 'zakariaraita65@gmail.com' || user.uid.startsWith('5BN892FX')) && !currentTitles.includes("Grand Architect");
+           const needsController = data.hunterId === 'VJ06BQWB' && !currentTitles.includes("Al-Musaytir (المسيطر)");
            const needsAwakened = !currentTitles.includes("The Awakened (المستيقظ)");
-           const needsLevelBoost = !data.totalExpEarned || data.totalExpEarned < 10000;
+           const needsLevelBoost = data.level < 5;
 
-           if (needsArchitect || needsAwakened || needsLevelBoost) {
+           if (needsArchitect || needsController || needsAwakened || needsLevelBoost) {
               const updatedTitles = [...currentTitles];
-              if (needsArchitect) updatedTitles.push("Grand Architect");
-              if (needsAwakened) updatedTitles.push("The Awakened (المستيقظ)");
+              if (needsArchitect && !updatedTitles.includes("Grand Architect")) updatedTitles.push("Grand Architect");
+              if (needsController && !updatedTitles.includes("Al-Musaytir (المسيطر)")) updatedTitles.push("Al-Musaytir (المسيطر)");
+              if (needsAwakened && !updatedTitles.includes("The Awakened (المستيقظ)")) updatedTitles.push("The Awakened (المستيقظ)");
               
               const updates: any = {
                  titles: updatedTitles
               };
 
+              if (needsController) {
+                updates.activeTitle = "Al-Musaytir (المسيطر)";
+              }
+
               if (needsLevelBoost) {
-                 updates.totalExpEarned = 10000;
+                 updates.totalExpEarned = Math.max(data.totalExpEarned || 0, 5000);
                  updates.level = 5; 
                  updates.exp = 0;
                  updates.maxExp = Math.floor(EXP_PER_LEVEL * Math.pow(1.05, 4));
-                 notify("MATRIX OVERRIDE: LEVEL 5 ATTAINED. WELCOME, ARCHITECT.", "success");
+                 updates.rank = getRankIndexForLevel(5);
+                 notify("MATRIX OVERRIDE: LEVEL 5 ATTAINED. WELCOME, AL-MUSAYTIR.", "success");
+                 speak("Access granted. Protocol Al-Musaytir initiated.");
               }
 
               await updateDoc(doc(db, 'users', user.uid), updates);

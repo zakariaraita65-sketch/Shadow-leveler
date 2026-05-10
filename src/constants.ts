@@ -307,8 +307,17 @@ export const AVAILABLE_TITLES = [
     goal: 100, 
     metric: "level", 
     secret: true, 
-    theme: { color: "#fcd34d", shadow: "0 0 60px rgba(252,211,77,0.8)", glow: true },
+    theme: { color: "#fcd34d", shadow: "0 0 60px rgba(252,211,211,77,0.8)", glow: true },
     currency: { name: "Celestial Gold", icon: "Sun" }
+  },
+  { 
+    id: "the_controller", 
+    name: "Al-Musaytir (المسيطر)", 
+    condition: "Grand Architect's Special Decree", 
+    difficulty: "Mythic", 
+    secret: true, 
+    theme: { color: "#fbbf24", shadow: "0 0 50px rgba(251,191,36,0.8)", glow: true },
+    currency: { name: "Matrix Essence", icon: "Crown" }
   },
   { 
     id: "shadow_monarch_true", 

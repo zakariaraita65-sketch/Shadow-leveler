@@ -35,12 +35,16 @@ import {
   Sun,
   Crown,
   Cpu,
-  Wand2
+  Wand2,
+  KeyRound,
+  ShieldCheck,
+  Lock
 } from 'lucide-react';
 import { UserStats, Rank } from '../types';
 import { RANK_ORDER, RANK_TITLES, AVAILABLE_TITLES, DIFFICULTY_COLORS, getCurrencyForTitle } from '../constants';
 
 import SystemLogo from './SystemLogo';
+import { linkHunterAccount } from '../firebase';
 
 const ICON_MAP: Record<string, any> = {
   Gem, Moon, CircleDot, Droplets, Ghost, Coins, Flame, CloudMoon, Sparkles, Sun, Crown, Cpu, Wand2
@@ -57,6 +61,44 @@ interface ProfileViewProps {
 export default function ProfileView({ userId, stats, skills, questCount, onUpdateStats }: ProfileViewProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [securityEdit, setSecurityEdit] = useState({
+    show: false,
+    id: "",
+    pass: "",
+    confirm: "",
+    error: null as string | null,
+    loading: false
+  });
+
+  const handleLinkAccount = async () => {
+    if (!securityEdit.id || !securityEdit.pass) return;
+    if (securityEdit.id.includes(" ")) {
+      setSecurityEdit(prev => ({ ...prev, error: "ID cannot contain spaces" }));
+      return;
+    }
+    if (securityEdit.pass !== securityEdit.confirm) {
+      setSecurityEdit(prev => ({ ...prev, error: "Passwords do not match" }));
+      return;
+    }
+    if (securityEdit.pass.length < 6) {
+      setSecurityEdit(prev => ({ ...prev, error: "Password too short (min 6 chars)" }));
+      return;
+    }
+
+    try {
+      setSecurityEdit(prev => ({ ...prev, loading: true, error: null }));
+      await linkHunterAccount(securityEdit.id, securityEdit.pass);
+      await onUpdateStats({ hunterId: securityEdit.id });
+      setSecurityEdit({ show: false, id: "", pass: "", confirm: "", error: null, loading: false });
+      alert("MATRIX SECURITY SECURED: Account linked successfully! / تمت حماية الحساب بنجاح");
+    } catch (err: any) {
+      console.error("Account linking failed", err);
+      let message = err.message || "Link failed";
+      if (err.code === 'auth/credential-already-in-use') message = "This ID or your account is already linked. / هذا الحساب مربوط بالفعل";
+      if (err.code === 'auth/email-already-in-use') message = "This Hunter ID is already taken. / هذا الرقم التعريفي مأخوذ";
+      setSecurityEdit(prev => ({ ...prev, loading: false, error: message }));
+    }
+  };
   const [editData, setEditData] = useState({
     displayName: stats.displayName || "",
     age: stats.age || 0,
@@ -292,6 +334,100 @@ export default function ProfileView({ userId, stats, skills, questCount, onUpdat
       {/* Enhanced Personal DNA Section */}
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         <div className="lg:col-span-1 space-y-6">
+           {/* Matrix Security Section */}
+           <div className={`bg-white/5 border rounded-2xl p-6 transition-all ${stats.hunterId ? 'border-green-500/20' : 'border-yellow-500/20 shadow-[0_0_20px_rgba(234,179,8,0.1)]'}`}>
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-xs font-display font-bold uppercase italic text-white/40 flex items-center gap-2">
+                  <ShieldCheck size={14} className={stats.hunterId ? 'text-green-400' : 'text-yellow-400'} />
+                  Matrix Security
+                </h3>
+                {stats.hunterId ? (
+                   <span className="text-[8px] font-mono bg-green-500/20 text-green-400 px-2 py-0.5 rounded border border-green-500/30 uppercase">Secured</span>
+                ) : (
+                   <span className="text-[8px] font-mono bg-yellow-500/20 text-yellow-400 px-2 py-0.5 rounded border border-yellow-500/30 uppercase">Open Path</span>
+                )}
+              </div>
+
+              {securityEdit.show ? (
+                 <div className="space-y-3">
+                   <div className="space-y-1">
+                      <label className="text-[9px] font-mono text-white/30 uppercase">Account ID</label>
+                      <input 
+                        type="text" 
+                        placeholder="New Hunter ID"
+                        value={securityEdit.id}
+                        onChange={(e) => setSecurityEdit({...securityEdit, id: e.target.value})}
+                        className="w-full bg-white/5 border border-white/10 rounded-lg py-2 px-3 text-xs text-white outline-none focus:border-system-neon"
+                      />
+                   </div>
+                   <div className="space-y-1">
+                      <label className="text-[9px] font-mono text-white/30 uppercase">Secret Passphrase</label>
+                      <input 
+                        type="password" 
+                        placeholder="Minimum 6 chars"
+                        value={securityEdit.pass}
+                        onChange={(e) => setSecurityEdit({...securityEdit, pass: e.target.value})}
+                        className="w-full bg-white/5 border border-white/10 rounded-lg py-2 px-3 text-xs text-white outline-none focus:border-system-neon"
+                      />
+                   </div>
+                   <div className="space-y-1">
+                      <label className="text-[9px] font-mono text-white/30 uppercase">Confirm Secret</label>
+                      <input 
+                        type="password" 
+                        placeholder="Repeat Passphrase"
+                        value={securityEdit.confirm}
+                        onChange={(e) => setSecurityEdit({...securityEdit, confirm: e.target.value})}
+                        className="w-full bg-white/5 border border-white/10 rounded-lg py-2 px-3 text-xs text-white outline-none focus:border-system-neon"
+                      />
+                   </div>
+                   {securityEdit.error && <p className="text-[9px] text-red-400 font-mono italic">{securityEdit.error}</p>}
+                   <div className="flex gap-2 pt-2">
+                      <button 
+                         onClick={handleLinkAccount}
+                         disabled={securityEdit.loading}
+                         className="flex-1 py-2 bg-system-neon/90 text-black font-display font-black italic rounded-lg text-[10px] uppercase hover:scale-105 active:scale-95 transition-all disabled:opacity-50"
+                      >
+                         {securityEdit.loading ? "Linking..." : "Confirm"}
+                      </button>
+                      <button 
+                         onClick={() => setSecurityEdit({...securityEdit, show: false, error: null})}
+                         className="px-3 py-2 bg-white/5 text-white/40 font-mono rounded-lg text-[10px] uppercase hover:bg-white/10"
+                      >
+                         Cancel
+                      </button>
+                   </div>
+                 </div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="flex items-center gap-3 p-3 bg-white/5 rounded-xl border border-white/5">
+                    <Lock size={16} className="text-white/20" />
+                    <div className="flex flex-col">
+                      <span className="text-[9px] font-mono text-white/40 uppercase">Protection Level</span>
+                      <span className="text-xs font-display font-bold text-white">{stats.hunterId ? 'QUANTUM LINK' : 'BASIC BIOMETRIC'}</span>
+                    </div>
+                  </div>
+                  {!stats.hunterId && (
+                    <button 
+                       onClick={() => setSecurityEdit({...securityEdit, show: true})}
+                       className="w-full py-3 border border-yellow-500/30 bg-yellow-500/5 text-yellow-500 font-display font-bold italic text-xs uppercase rounded-xl hover:bg-yellow-500/10 transition-all flex items-center justify-center gap-2"
+                    >
+                       <KeyRound size={14} />
+                       Secure Account with ID
+                    </button>
+                  )}
+                  {stats.hunterId && (
+                     <div className="flex items-center gap-3 p-3 bg-green-500/5 rounded-xl border border-green-500/10">
+                        <User size={16} className="text-green-400/50" />
+                        <div className="flex flex-col">
+                          <span className="text-[9px] font-mono text-white/40 uppercase">Manual Access ID</span>
+                          <span className="text-xs font-display font-bold text-green-400">{stats.hunterId}</span>
+                        </div>
+                     </div>
+                  )}
+                </div>
+              )}
+           </div>
+
            <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
               <h3 className="text-xs font-display font-bold uppercase italic text-white/40 mb-6 flex items-center gap-2">
                 <Dna size={14} className="text-system-neon" />
