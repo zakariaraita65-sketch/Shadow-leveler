@@ -18,7 +18,7 @@ export default function SkillTree({ skills }: SkillTreeProps) {
         {SUBJECTS.map((subject) => {
           const Icon = (LucideIcons as any)[subject.icon] || LucideIcons.Sparkles;
           const skillData = skills[subject.id] || { level: 1, exp: 0, maxExp: 100 };
-          const progress = (skillData.exp / skillData.maxExp) * 100;
+          const progress = skillData.maxExp > 0 ? (skillData.exp / skillData.maxExp) * 100 : 0;
 
           return (
             <motion.div

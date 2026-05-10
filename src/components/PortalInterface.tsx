@@ -78,7 +78,9 @@ export default function PortalInterface({ quest, onClose, onComplete, portalType
     setVerificationError(null);
 
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || '' });
+      const apiKey = process.env.GEMINI_API_KEY;
+      if (!apiKey) throw new Error("A.I. Key missing.");
+      const ai = new GoogleGenAI({ apiKey });
       
       const base64Data = verificationImage.split(',')[1];
       const mimeType = verificationImage.split(';')[0].split(':')[1];

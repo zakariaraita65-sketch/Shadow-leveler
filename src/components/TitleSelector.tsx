@@ -93,7 +93,7 @@ export default function TitleSelector({ onClose, onSelect, earnedTitles, activeT
                        <div className="w-full h-1.5 bg-white/10 rounded-full mt-1 overflow-hidden border border-white/5 relative">
                           <motion.div 
                             initial={{ width: 0 }}
-                            animate={{ width: `${(Math.min(getMetricValue(title.metric), title.goal) / title.goal) * 100}%` }}
+                            animate={{ width: `${title.goal && title.goal > 0 ? (Math.min(getMetricValue(title.metric), title.goal) / title.goal) * 100 : 0}%` }}
                             className="h-full relative z-10"
                             style={{ 
                               backgroundColor: title.theme?.color || '#22d3ee',

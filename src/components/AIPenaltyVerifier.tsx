@@ -3,8 +3,14 @@ import { Camera, Upload, CheckCircle, XCircle, Loader2 } from 'lucide-react';
 import { GoogleGenAI, Type } from '@google/genai';
 import { motion, AnimatePresence } from 'motion/react';
 
-// Initialize the Gemini AI client
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+// Helper to get Gemini AI client lazily
+const getAI = () => {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) {
+    throw new Error("System Error: GEMINI_API_KEY is missing. Access Denied.");
+  }
+  return new GoogleGenAI({ apiKey });
+};
 
 interface AIPenaltyVerifierProps {
   onVerifySuccess: () => void;
@@ -62,6 +68,7 @@ export default function AIPenaltyVerifier({ onVerifySuccess, onVerifyFail, penal
     setFeedback('Analyzing evidence...');
 
     try {
+      const ai = getAI();
       // Read the file as a base64 string
       const base64Data = await new Promise<string>((resolve, reject) => {
         const reader = new FileReader();

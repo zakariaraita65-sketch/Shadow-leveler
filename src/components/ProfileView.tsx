@@ -267,8 +267,8 @@ export default function ProfileView({ userId, stats, skills, questCount, onUpdat
                    <input 
                      type="number"
                      placeholder="Age"
-                     value={editData.age}
-                     onChange={(e) => setEditData({...editData, age: parseInt(e.target.value)})}
+                     value={editData.age || ""}
+                     onChange={(e) => setEditData({...editData, age: e.target.value === "" ? 0 : parseInt(e.target.value)})}
                      className="w-16 bg-white/10 border border-white/20 rounded px-2 py-1 text-xs text-white"
                    />
                  </>
@@ -311,7 +311,7 @@ export default function ProfileView({ userId, stats, skills, questCount, onUpdat
                       {isEditing ? (
                         <input 
                            type={meta.key === 'bloodType' ? 'text' : 'number'}
-                           value={(editData as any)[meta.key]}
+                           value={(editData as any)[meta.key] || ""}
                            onChange={(e) => {
                              const val = e.target.value;
                              setEditData({

@@ -91,7 +91,6 @@ export default function UserHUD({ stats, rankIndex, userId, questCount = 0, onOp
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 relative z-10">
         <div className="flex flex-col">
           <div className="flex items-center gap-2">
-            <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ backgroundColor: themeColor }} />
             <h2 className={`text-[10px] font-mono uppercase tracking-[0.4em] font-black`} style={{ color: `${themeColor}cc` }}>
               {stats.displayName || "GUEST_HUNTER"}
             </h2>

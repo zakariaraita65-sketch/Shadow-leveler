@@ -127,8 +127,8 @@ export default function Onboarding({ user, onComplete }: OnboardingProps) {
                 required
                 min="1"
                 max="120"
-                value={formData.age}
-                onChange={(e) => setFormData({ ...formData, age: parseInt(e.target.value) })}
+                value={formData.age || ""}
+                onChange={(e) => setFormData({ ...formData, age: e.target.value === "" ? 0 : parseInt(e.target.value) })}
                 className="w-full bg-white/5 border border-white/10 rounded-lg py-3 px-4 focus:border-system-neon focus:ring-1 focus:ring-system-neon outline-none transition-all font-display text-lg"
               />
             </div>
@@ -139,8 +139,8 @@ export default function Onboarding({ user, onComplete }: OnboardingProps) {
                 <label className="text-[10px] font-mono text-white/50 uppercase tracking-widest">Height (cm)</label>
                 <input 
                   type="number" 
-                  value={formData.height}
-                  onChange={(e) => setFormData({ ...formData, height: parseInt(e.target.value) })}
+                  value={formData.height || ""}
+                  onChange={(e) => setFormData({ ...formData, height: e.target.value === "" ? 0 : parseInt(e.target.value) })}
                   className="w-full bg-white/5 border border-white/10 rounded-lg py-2 px-3 focus:border-system-neon outline-none"
                 />
              </div>
@@ -148,8 +148,8 @@ export default function Onboarding({ user, onComplete }: OnboardingProps) {
                 <label className="text-[10px] font-mono text-white/50 uppercase tracking-widest">Weight (kg)</label>
                 <input 
                   type="number" 
-                  value={formData.weight}
-                  onChange={(e) => setFormData({ ...formData, weight: parseInt(e.target.value) })}
+                  value={formData.weight || ""}
+                  onChange={(e) => setFormData({ ...formData, weight: e.target.value === "" ? 0 : parseInt(e.target.value) })}
                   className="w-full bg-white/5 border border-white/10 rounded-lg py-2 px-3 focus:border-system-neon outline-none"
                 />
              </div>

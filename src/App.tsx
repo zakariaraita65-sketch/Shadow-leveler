@@ -616,7 +616,12 @@ export default function App() {
       let generatedPenalty = GET_RANDOM_PENALTY();
       try {
           const { GoogleGenAI } = await import('@google/genai');
-          const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+          const apiKey = process.env.GEMINI_API_KEY;
+          if (!apiKey) {
+            console.error("GEMINI_API_KEY is missing. AI functionality disabled.");
+            return;
+          }
+          const ai = new GoogleGenAI({ apiKey });
           const diffStr = questExpReward > 100 ? "hard" : "easy";
           const result = await ai.models.generateContent({
               model: 'gemini-3-flash-preview',
@@ -769,7 +774,8 @@ export default function App() {
     }
 
     const interval = setInterval(() => {
-      const remaining = new Date(stats.lockdownUntil!).getTime() - Date.now();
+      const lockdownDate = new Date(stats.lockdownUntil!);
+      const remaining = !isNaN(lockdownDate.getTime()) ? lockdownDate.getTime() - Date.now() : 0;
       if (remaining <= 0) {
         setLockdownTimeLeft(0);
         clearInterval(interval);
@@ -1437,7 +1443,7 @@ export default function App() {
                   <motion.div 
                     className="absolute inset-y-0 left-0 bg-system-neon"
                     initial={{ width: "100%" }}
-                    animate={{ width: `${(lockdownTimeLeft / 300) * 100}%` }}
+                    animate={{ width: `${isNaN(lockdownTimeLeft) ? 0 : Math.max(0, Math.min(100, (lockdownTimeLeft / 300) * 100))}%` }}
                     transition={{ duration: 1, ease: "linear" }}
                   />
               </div>
