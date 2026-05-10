@@ -1,6 +1,7 @@
 import { motion } from "motion/react";
 import { STORE_ITEMS, getCurrencyForTitle } from "../constants";
 import * as LucideIcons from "lucide-react";
+import SystemLogo from "./SystemLogo";
 
 interface StoreSectionProps {
   gold: number;
@@ -48,7 +49,11 @@ export default function StoreSection({ gold, onBuy, activeTitle }: StoreSectionP
                   <div className={`w-14 h-14 rounded-xl flex items-center justify-center border transition-all ${
                     canAfford ? "bg-system-neon/10 border-system-neon/30 text-system-neon" : "bg-white/5 border-white/10 text-white/30"
                   }`}>
-                    <Icon size={28} />
+                    {item.icon.toLowerCase().includes('shield') ? (
+                      <SystemLogo size={28} color={canAfford ? "currentColor" : undefined} />
+                    ) : (
+                      <Icon size={28} />
+                    )}
                   </div>
                   <div className="flex flex-col">
                     <h3 className="font-display font-bold text-xl">{item.name}</h3>

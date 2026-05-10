@@ -22,7 +22,7 @@ export interface Quest {
   id: string;
   title: string;
   description: string;
-  exp: number;
+  expReward: number;
   gold?: number;
   difficulty?: "Easy" | "Medium" | "Hard" | "Legendary" | "Mythic";
   type: "daily" | "main";

@@ -73,7 +73,7 @@ export default function TitleSelector({ onClose, onSelect, earnedTitles, activeT
                   `}
                 >
                   <div className="flex items-center justify-between">
-                    <span className={`text-sm font-display font-bold uppercase ${isActive ? 'text-system-neon' : 'text-white'}`}>
+                    <span className={`text-sm font-display font-bold uppercase`} style={{ color: isActive ? (title.theme?.color || '#00ff9d') : 'white' }}>
                       {title.name}
                     </span>
                     {isActive ? (

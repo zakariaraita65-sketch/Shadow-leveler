@@ -162,8 +162,8 @@ export const INITIAL_STATS = {
   hardQuestsCompleted: 0,
   dailyQuestsCompleted: 0,
   totalExpEarned: 0,
-  activeTitle: "The Awakening",
-  titles: ["The Awakening"],
+  activeTitle: "The Awakened (المستيقظ)",
+  titles: ["The Awakened (المستيقظ)"],
   pardonTickets: 1,
   isProfileComplete: false
 };
@@ -212,7 +212,7 @@ export const DIFFICULTY_COLORS: Record<string, string> = {
 export const AVAILABLE_TITLES = [
   { 
     id: "awakening", 
-    name: "The Awakening", 
+    name: "The Awakened (المستيقظ)", 
     condition: "Initial Title", 
     difficulty: "Easy", 
     theme: { color: "#22d3ee", shadow: "0 0 15px rgba(34,211,238,0.2)" },
@@ -320,6 +320,16 @@ export const AVAILABLE_TITLES = [
     secret: true, 
     theme: { color: "#ffffff", shadow: "0 0 70px rgba(255,255,255,0.9)", glow: true },
     currency: { name: "Monarch Essence", icon: "Crown" }
+  },
+  { 
+    id: "grand_architect", 
+    name: "Grand Architect", 
+    condition: "Special Title for the System Designer", 
+    difficulty: "Mythic", 
+    secret: true, 
+    creatorOnly: true,
+    theme: { color: "#d946ef", shadow: "0 0 50px rgba(217,70,239,0.9)", glow: true },
+    currency: { name: "Architect Sparks", icon: "Cpu" }
   }
 ];
 

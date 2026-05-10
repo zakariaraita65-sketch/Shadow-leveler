@@ -21,10 +21,14 @@
         "penaltyActive": { "type": "boolean" },
         "penaltyReason": { "type": "string" },
         "penaltyDeadline": { "type": "string", "format": "date-time" },
+        "lockdownUntil": { "type": "string", "format": "date-time" },
         "activeTitle": { "type": "string" },
         "titles": { "type": "array", "items": { "type": "string" } },
         "pardonTickets": { "type": "integer" },
         "pardonGifted": { "type": "boolean" },
+        "totalExpEarned": { "type": "integer" },
+        "dailyQuestsCompleted": { "type": "integer" },
+        "hardQuestsCompleted": { "type": "integer" },
         "height": { "type": "number" },
         "weight": { "type": "number" },
         "bloodType": { "type": "string" },
@@ -44,7 +48,11 @@
         "type": { "type": "string", "enum": ["daily", "main"] },
         "completed": { "type": "boolean" },
         "dueDate": { "type": "string", "format": "date-time" },
-        "category": { "type": "string" }
+        "category": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "difficulty": { "type": "string" },
+        "status": { "type": "string", "enum": ["pending", "active", "completed", "failed"] },
+        "gold": { "type": "integer" }
       },
       "required": ["userId", "title", "expReward", "type", "completed", "category"]
     },

@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, useAnimation } from "motion/react";
-import { Shield, LayoutDashboard, Swords, Sparkles, Clock, ShoppingBag, Fingerprint } from "lucide-react";
+import { LayoutDashboard, Swords, Sparkles, Clock, ShoppingBag, Fingerprint } from "lucide-react";
 import { signInWithFingerprint, signInWithGoogle } from "../firebase";
+import SystemLogo from "./SystemLogo";
 
 interface LoginProps {
   onLoginProgress: (progress: boolean) => void;
@@ -98,9 +99,9 @@ export default function Login({ onLoginProgress }: LoginProps) {
               <motion.div 
                 animate={{ scale: [1, 1.05, 1] }} 
                 transition={{ duration: 4, repeat: Infinity }}
-                className="w-24 h-24 rounded-full bg-system-neon/10 border border-system-neon/30 flex items-center justify-center text-system-neon mx-auto shadow-[0_0_30px_rgba(34,211,238,0.2)]"
+                className="w-24 h-24 rounded-full bg-system-neon/10 border border-system-neon/30 flex items-center justify-center mx-auto shadow-[0_0_30px_rgba(34,211,238,0.2)]"
               >
-                <Shield size={48} />
+                <SystemLogo color="#00f2ff" size={64} />
               </motion.div>
               <div className="flex flex-col gap-1 mt-4">
                 <span className="text-xs font-mono text-system-neon tracking-[0.5em] uppercase font-bold">Protocol: Void</span>
@@ -188,10 +189,10 @@ export default function Login({ onLoginProgress }: LoginProps) {
               onTouchEnd={cancelPress}
               onContextMenu={(e) => e.preventDefault()}
               className={`w-32 h-32 rounded-full select-none touch-none system-border flex flex-col items-center justify-center transition-colors duration-300 relative z-10 ${
-                isPressing ? 'bg-system-neon/20 shadow-[0_0_50px_rgba(34,211,238,0.5)] border-system-neon' : 'bg-system-card text-system-neon/50'
+                isPressing ? 'bg-system-neon/20 shadow-[0_0_50px_rgba(34,211,238,0.5)] border-system-neon' : 'bg-system-card'
               }`}
             >
-              <Fingerprint size={64} className={isPressing ? 'text-system-neon animate-pulse' : ''} />
+              <SystemLogo color="#00f2ff" size={64} glow={isPressing} />
             </motion.button>
           </div>
 

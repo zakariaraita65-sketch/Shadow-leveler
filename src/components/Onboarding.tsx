@@ -1,7 +1,8 @@
 import { useState } from "react";
 import React from "react";
 import { motion } from "motion/react";
-import { User, Shield, UserCircle, Users, Calendar, ArrowLeft, Sparkles } from "lucide-react";
+import { User, UserCircle, Users, Calendar, ArrowLeft, Sparkles } from "lucide-react";
+import SystemLogo from "./SystemLogo";
 import { signOut } from "firebase/auth";
 import { auth } from "../firebase";
 
@@ -50,8 +51,8 @@ export default function Onboarding({ user, onComplete }: OnboardingProps) {
         className="max-w-lg w-full bg-system-card system-border p-8 rounded-2xl relative z-10"
       >
         <div className="flex flex-col items-center gap-4 mb-10 pt-4">
-          <div className="w-16 h-16 rounded-full bg-system-neon/20 flex items-center justify-center text-system-neon system-glow mb-2">
-            <Shield size={32} />
+          <div className="w-16 h-16 rounded-full bg-system-neon/20 flex items-center justify-center mb-2">
+            <SystemLogo color="#00f2ff" size={32} />
           </div>
           <span className="text-[10px] font-mono text-system-neon tracking-[0.4em] uppercase font-bold text-center">New Hunter Detected</span>
           <h2 className="text-3xl font-display font-black italic tracking-tighter text-center uppercase">Initialize Profile</h2>

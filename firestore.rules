@@ -38,14 +38,14 @@ service cloud.firestore {
     // --- VALIDATION HELPERS ---
     
     function isValidUserStats(data) {
-      return data.keys().hasAll(['rank', 'level', 'exp', 'maxExp', 'gold', 'streak', 'lastActive'])
-        && data.rank is string
-        && data.level is number
-        && data.exp is number
-        && data.maxExp is number
-        && data.gold is number
-        && data.streak is number
-        && data.lastActive is string
+      return (
+           (!('rank' in data) || data.rank is string)
+        && (!('level' in data) || data.level is number)
+        && (!('exp' in data) || data.exp is number)
+        && (!('maxExp' in data) || data.maxExp is number)
+        && (!('gold' in data) || data.gold is number)
+        && (!('streak' in data) || data.streak is number)
+        && (!('lastActive' in data) || data.lastActive is string)
         && (!('pardonTickets' in data) || data.pardonTickets is number)
         && (!('gender' in data) || data.gender in ['male', 'female'])
         && (!('age' in data) || data.age is number)
@@ -59,12 +59,21 @@ service cloud.firestore {
         && (!('penaltyReason' in data) || data.penaltyReason == null || data.penaltyReason is string)
         && (!('penaltyAssignedAt' in data) || data.penaltyAssignedAt == null || data.penaltyAssignedAt is string)
         && (!('penaltyDeadline' in data) || data.penaltyDeadline == null || data.penaltyDeadline is string)
+        && (!('lockdownUntil' in data) || data.lockdownUntil == null || data.lockdownUntil is string)
         && (!('activeTitle' in data) || data.activeTitle is string)
         && (!('titles' in data) || data.titles is list)
         && (!('pardonGifted' in data) || data.pardonGifted is bool)
         && (!('totalFocusTime' in data) || data.totalFocusTime is number)
         && (!('completedQuests' in data) || data.completedQuests is number)
-        && (!('isProfileComplete' in data) || data.isProfileComplete is bool);
+        && (!('totalExpEarned' in data) || data.totalExpEarned is number)
+        && (!('dailyQuestsCompleted' in data) || data.dailyQuestsCompleted is number)
+        && (!('hardQuestsCompleted' in data) || data.hardQuestsCompleted is number)
+        && (!('isProfileComplete' in data) || data.isProfileComplete is bool)
+      );
+    }
+
+    function hasRequiredUserStats(data) {
+      return data.keys().hasAll(['rank', 'level', 'exp', 'maxExp', 'gold', 'streak', 'lastActive']);
     }
 
     function isValidQuest(data, userId) {
@@ -79,7 +88,10 @@ service cloud.firestore {
         && (!('description' in data) || data.description is string)
         && (!('duration' in data) || data.duration is number)
         && (!('status' in data) || data.status in ['pending', 'active', 'completed', 'failed'])
-        && (!('startedAt' in data) || data.startedAt is string);
+        && (!('startedAt' in data) || data.startedAt is string)
+        && (!('createdAt' in data) || data.createdAt is string)
+        && (!('difficulty' in data) || data.difficulty is string)
+        && (!('gold' in data) || data.gold is number);
     }
 
     function isValidSkill(data) {
@@ -94,16 +106,16 @@ service cloud.firestore {
     match /users/{userId} {
       allow list: if isSignedIn();
       allow get: if isOwner(userId);
-      allow create: if isOwner(userId) && isValidUserStats(incoming());
+      allow create: if isOwner(userId) && hasRequiredUserStats(incoming()) && isValidUserStats(incoming());
       allow update: if isOwner(userId) && isValidUserStats(incoming()) && (
         // Action-based updates
         incoming().diff(existing()).affectedKeys().hasOnly([
           'rank', 'level', 'exp', 'maxExp', 'gold', 'streak', 'lastActive', 
           'totalFocusTime', 'completedQuests', 'displayName', 'photoURL',
           'penaltyActive', 'penaltyReason', 'penaltyDeadline', 'penaltyAssignedAt',
-          'activeTitle', 'titles', 'pardonTickets', 'pardonGifted',
+          'lockdownUntil', 'activeTitle', 'titles', 'pardonTickets', 'pardonGifted',
           'height', 'weight', 'bloodType', 'ultimateGoal', 'gender', 'age',
-          'isProfileComplete'
+          'isProfileComplete', 'totalExpEarned', 'dailyQuestsCompleted', 'hardQuestsCompleted'
         ])
       );
 
@@ -112,7 +124,6 @@ service cloud.firestore {
         allow get: if isOwner(userId);
         allow create: if isOwner(userId) && isValidQuest(incoming(), userId) && isValidId(questId);
         allow update: if isOwner(userId) && isValidQuest(incoming(), userId) && (
-          // Update can be either completing, or editing title
           incoming().diff(existing()).affectedKeys().hasAny(['completed', 'title', 'category', 'status', 'startedAt'])
         );
         allow delete: if isOwner(userId);

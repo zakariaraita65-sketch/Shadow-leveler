@@ -250,7 +250,7 @@ function QuestCard({ quest, onToggle, onDelete, onStart, onFail }: QuestCardProp
               <ScrollText size={10} /> {quest.category}
             </span>
             <span className="flex items-center gap-1 text-system-neon uppercase">
-               +{quest.exp} EXP
+               +{quest.expReward || (quest as any).exp || 900} EXP
             </span>
             {quest.status === 'failed' && (
               <span className="flex items-center gap-1 text-system-danger uppercase font-bold ml-auto">
@@ -343,7 +343,20 @@ function QuestCard({ quest, onToggle, onDelete, onStart, onFail }: QuestCardProp
 
               <div className="flex gap-3">
                  <button onClick={() => setShowVerification(false)} className="flex-1 py-3 bg-white/5 hover:bg-white/10 rounded uppercase text-[10px] font-bold tracking-widest text-white/70">Cancel</button>
-                 <button onClick={handleVerify} className="flex-1 py-3 bg-system-neon hover:bg-white text-black rounded uppercase text-[10px] font-bold tracking-widest transition-all shadow-lg shadow-system-neon/20">Bypass / Verify</button>
+                 <label className="flex-1 py-3 bg-system-neon hover:bg-white text-black rounded uppercase text-[10px] font-bold tracking-widest transition-all shadow-lg shadow-system-neon/20 cursor-pointer flex items-center justify-center">
+                    Verify with Photo
+                    <input 
+                      type="file" 
+                      accept="image/*" 
+                      capture="environment" 
+                      className="hidden"
+                      onChange={(e) => {
+                        if (e.target.files && e.target.files.length > 0) {
+                          handleVerify();
+                        }
+                      }}
+                    />
+                 </label>
               </div>
             </motion.div>
           </div>

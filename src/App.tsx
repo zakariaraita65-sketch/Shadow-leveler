@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
-  Shield, 
   Menu, 
   X, 
   Settings, 
@@ -55,6 +54,7 @@ import { UserStats, Quest, Rank } from './types';
 import { 
   INITIAL_STATS, 
   RANK_ORDER, 
+  RANK_TITLES,
   EXP_PER_LEVEL, 
   AVAILABLE_TITLES, 
   GET_RANDOM_PENALTY, 
@@ -64,7 +64,9 @@ import {
   SUBJECTS,
   EXAM_DATE
 } from './constants';
+import PortalInterface from './components/PortalInterface';
 import TitleSelector from './components/TitleSelector';
+import SystemLogo from './components/SystemLogo';
 
 export default function App() {
   // --- STATE ---
@@ -75,12 +77,14 @@ export default function App() {
   const [quests, setQuests] = useState<Quest[]>([]);
   const [skills, setSkills] = useState<any>({});
   
-  const [notifications, setNotifications] = useState<{ id: number; text: string; type?: any }[]>([]);
+  const [notifications, setNotifications] = useState<{ id: number; text: string; type?: any; onClick?: () => void }[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'dashboard' | 'quests' | 'skills' | 'timer' | 'store' | 'ranks' | 'profile'>('dashboard');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isTitleModalOpen, setIsTitleModalOpen] = useState(false);
   const [isEmergencyActive, setIsEmergencyActive] = useState(false);
+  const [activePortalQuest, setActivePortalQuest] = useState<Quest | null>(null);
+  const [activePortalType, setActivePortalType] = useState<'cave' | 'forest' | 'sea' | 'lava'>('cave');
   const hasCheckedPenalty = useRef(false);
   const lastTimeCheck = useRef<number>(0);
 
@@ -114,8 +118,9 @@ export default function App() {
         speak(msg);
       }
 
-      // 3. Emergency Mission Spawning (1% chance every minute)
-      if (Math.random() < 0.01) {
+      // 3. Emergency Mission Spawning
+      // Trigger every 4 hours (240 minutes)
+      if (currentTime > 0 && currentTime % 240 === 0) {                
         spawnEmergencyQuest();
       }
     }, 60000); // Check every minute
@@ -139,19 +144,18 @@ export default function App() {
     const msgTemplate = HUNTER_NOTIFICATIONS.emergency[Math.floor(Math.random() * HUNTER_NOTIFICATIONS.emergency.length)];
     const msg = msgTemplate.replace("[SUBJECT]", targetSubject.name);
     
-    notify(msg, 'warning');
-    speak(msg);
-    setIsEmergencyActive(true);
-    setTimeout(() => setIsEmergencyActive(false), 5000);
+    const portals: ('cave' | 'forest' | 'sea' | 'lava')[] = ['cave', 'forest', 'sea', 'lava'];
+    const randomPortal = portals[Math.floor(Math.random() * portals.length)];
 
-    const emergencyQuest: Partial<Quest> = {
+    const emergencyQuest: Quest = {
+      id: `emergency-${Date.now()}`,
       title: `ULTIMATE MISSION: ${randomLesson}`,
       description: `ULTIMATE REVISION PHASE: Focus on "${randomLesson}" from ${targetSubject.name}. Time is running out, Hunter!`,
       type: 'main',
       difficulty: 'Legendary',
       category: targetSubject.id,
-      exp: 1000, 
-      gold: 500,
+      expReward: 900, 
+      gold: 400,
       completed: false,
       status: 'active',
       dueDate: new Date(Date.now() + 20 * 60 * 1000).toISOString(), // 20 minutes limit!
@@ -160,7 +164,21 @@ export default function App() {
     };
 
     try {
-      await addDoc(collection(db, 'users', user.uid, 'quests'), emergencyQuest);
+      const { id: localId, ...questData } = emergencyQuest;
+      const docRef = await addDoc(collection(db, 'users', user.uid, 'quests'), questData);
+      
+      // Update the active quest with the REAL firestore ID
+      const finalQuest = { ...emergencyQuest, id: docRef.id };
+      
+      notify(msg, 'warning', () => {
+          speak("Initializing dimensional transition. Brace yourself, Hunter.");
+          setActivePortalQuest(finalQuest);
+          setActivePortalType(randomPortal);
+      });
+      
+      setIsEmergencyActive(true);
+      setTimeout(() => setIsEmergencyActive(false), 5000);
+
     } catch (err) {
       handleFirestoreError(err, OperationType.CREATE, `users/${user.uid}/quests`);
     }
@@ -254,6 +272,56 @@ export default function App() {
 
         setStats(data);
         
+        // --- CREATOR TITLE & LEVEL BOOSTER ---
+        if (user.email === 'zakariaraita65@gmail.com' || user.uid.startsWith('5BN892FX')) {
+           const currentTitles = Array.isArray(data.titles) ? data.titles : [];
+           const needsArchitect = !currentTitles.includes("Grand Architect");
+           const needsAwakened = !currentTitles.includes("The Awakened (المستيقظ)");
+           const needsLevelBoost = !data.totalExpEarned || data.totalExpEarned < 10000;
+
+           if (needsArchitect || needsAwakened || needsLevelBoost) {
+              const updatedTitles = [...currentTitles];
+              if (needsArchitect) updatedTitles.push("Grand Architect");
+              if (needsAwakened) updatedTitles.push("The Awakened (المستيقظ)");
+              
+              const updates: any = {
+                 titles: updatedTitles
+              };
+
+              if (needsLevelBoost) {
+                 updates.totalExpEarned = 10000;
+                 updates.level = 5; 
+                 updates.exp = 0;
+                 updates.maxExp = Math.floor(EXP_PER_LEVEL * Math.pow(1.05, 4));
+                 notify("MATRIX OVERRIDE: LEVEL 5 ATTAINED. WELCOME, ARCHITECT.", "success");
+              }
+
+              await updateDoc(doc(db, 'users', user.uid), updates);
+              
+              if (needsArchitect) {
+                notify("GRAND ARCHITECT DETECTED. SYSTEM PERMISSIONS UPDATED.", "success");
+                speak("Welcome back, Grand Architect. Your creation is at your command.");
+              }
+           }
+        }
+        
+        // --- TITLE MIGRATION & SAFETY ---
+        // Ensure everyone has "The Awakened (المستيقظ)"
+        if (!data.titles || !data.titles.includes("The Awakened (المستيقظ)")) {
+             const uTitles = Array.isArray(data.titles) ? [...data.titles] : [];
+             if (!uTitles.includes("The Awakened (المستيقظ)")) uTitles.push("The Awakened (المستيقظ)");
+             
+             // If they had the old name, remove it
+             const cleanedTitles = uTitles.filter(t => t !== "The Awakening");
+             
+             const migrationUpdates: any = { titles: cleanedTitles };
+             if (data.activeTitle === "The Awakening" || !data.activeTitle) {
+               migrationUpdates.activeTitle = "The Awakened (المستيقظ)";
+             }
+             
+             await updateDoc(doc(db, 'users', user.uid), migrationUpdates);
+        }
+
         // Award one-time pardon ticket if missing (for existing users)
         if (data.pardonTickets === undefined || (data.pardonTickets === 0 && !(data as any).pardonGifted)) {
            await updateDoc(doc(db, 'users', user.uid), { 
@@ -377,20 +445,14 @@ export default function App() {
   }, [user, loading, quests.length, stats.penaltyActive, stats.lastActive]); 
 
   // --- HELPERS ---
-  const notify = useCallback((text: string, type: any = 'info') => {
-    setNotifications(prev => [...prev, { id: Date.now(), text, type }]);
+  const notify = useCallback((text: string, type: any = 'info', onClick?: () => void) => {
+    // Use a more unique ID to prevent React "duplicate key" errors
+    const uniqueId = Date.now() + Math.random();
+    setNotifications(prev => [...prev, { id: uniqueId, text, type, onClick }]);
 
     // Native Browser Notifications
     if (Notification.permission === "granted") {
-      try {
-        new Notification("SYSTEM MESSAGE", {
-          body: text,
-          icon: "https://cdn-icons-png.flaticon.com/512/3064/3064155.png", // Hunter Icon
-          tag: "hunter-system-alert"
-        });
-      } catch (e) {
-        console.error("Browser notification failed", e);
-      }
+        console.log("Browser notifications are enabled, but bypassing 'new Notification' constructor to avoid Illegal constructor error.");
     }
   }, []);
 
@@ -405,11 +467,14 @@ export default function App() {
     }
   };
 
-  const addExp = useCallback(async (amount: number, category?: string, additionalUpdates: any = {}) => {
+  const addExp = useCallback(async (amount: number = 0, category?: string, additionalUpdates: any = {}) => {
     if (!user) return;
     const userRef = doc(db, 'users', user.uid);
     
-    let newExp = stats.exp + amount;
+    // Ensure amount is a number and not NaN
+    const rewardAmount = isNaN(amount) ? 0 : amount;
+    
+    let newExp = stats.exp + rewardAmount;
     let newLevel = stats.level;
     let newRank = stats.rank;
     let newMaxExp = stats.maxExp;
@@ -431,8 +496,8 @@ export default function App() {
       }
     }
 
-    const goldEarned = Math.floor(amount * 0.8);
-    const totalExpNow = (stats.totalExpEarned || 0) + amount;
+    const goldEarned = Math.floor(rewardAmount * 0.8);
+    const totalExpNow = (stats.totalExpEarned || 0) + rewardAmount;
     
     if (goldEarned > 0) {
       const currency = getCurrencyForTitle(stats.activeTitle || "");
@@ -492,16 +557,23 @@ export default function App() {
         notify('MISSION COMPLETED', 'info');
         speak('MISSION COMPLETED. EXPERENCE GAINED.');
         
+        const reward = quest.expReward || quest.exp || 900;
+
         const updates = {
           completedQuests: stats.completedQuests + 1,
           dailyQuestsCompleted: quest.type === 'daily' ? (stats.dailyQuestsCompleted || 0) + 1 : (stats.dailyQuestsCompleted || 0),
-          hardQuestsCompleted: quest.expReward >= 300 ? (stats.hardQuestsCompleted || 0) + 1 : (stats.hardQuestsCompleted || 0),
+          hardQuestsCompleted: reward >= 300 ? (stats.hardQuestsCompleted || 0) + 1 : (stats.hardQuestsCompleted || 0),
         };
 
         // Unified update for exp, rank, gold AND quest stats
-        await addExp(quest.expReward, quest.category, updates);
+        await addExp(reward, quest.category, updates);
+        
+        // DELETE so it disappears as requested
+        await deleteDoc(qRef);
+      } else {
+        // If users somehow toggles back (unlikely now), just update
+        await updateDoc(qRef, { completed: !quest.completed, status: 'pending' });
       }
-      await updateDoc(qRef, { completed: !quest.completed, status: !quest.completed ? 'completed' : 'pending' });
     } catch (err) { handleFirestoreError(err, OperationType.UPDATE, `users/${user.uid}/quests/${id}`); }
   };
 
@@ -879,23 +951,82 @@ export default function App() {
     }
   };
 
+  const handlePortalComplete = async () => {
+    if (!activePortalQuest || !user) return;
+    
+    // Add rewards - STRICT 900 XP
+    const reward = 900;
+    
+    try {
+      // 1. Update stats and add EXP
+      await addExp(reward, activePortalQuest.category, {
+        completedQuests: stats.completedQuests + 1,
+        hardQuestsCompleted: (stats.hardQuestsCompleted || 0) + 1
+      });
+      
+      // 2. Delete from Firestore so it disappears permanently
+      const questId = activePortalQuest.id;
+      await deleteDoc(doc(db, 'users', user.uid, 'quests', questId));
+      
+      // 3. Cleanup local state
+      setActivePortalQuest(null);
+      setIsEmergencyActive(false);
+      setQuests(prev => prev.filter(q => q.id !== questId));
+      
+      notify("MISSION ACCOMPLISHED: PORTAL SEALED.", "success");
+      speak("Mission accomplished. Dimensional portal has been neutralized. Rewards distributed and energy stabilized.");
+    } catch (err) {
+      handleFirestoreError(err, OperationType.DELETE, `users/${user.uid}/quests/${activePortalQuest.id}`);
+    }
+  };
+
   // --- RENDER ---
   if (loading) {
     return (
-      <div className="min-h-screen bg-system-bg flex flex-col items-center justify-center p-6 text-center">
+      <div className="fixed inset-0 bg-black flex items-center justify-center z-[1000] p-6">
         <motion.div 
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="flex flex-col items-center gap-6"
+          className="flex flex-col items-center gap-8 text-center max-w-sm"
         >
-          <div className="relative">
-             <div className="w-16 h-16 border-4 border-system-neon/20 border-t-system-neon rounded-full animate-spin" />
-             <Shield size={32} className="absolute inset-0 m-auto text-system-neon animate-pulse" />
+          <div className="relative flex items-center justify-center w-20 h-20">
+             <div className="absolute inset-0 border-4 border-system-neon/20 border-t-system-neon rounded-full animate-spin" />
+             <SystemLogo size={40} color="#00f2ff" />
           </div>
-          <div className="flex flex-col gap-1">
-             <h2 className="text-xl font-display font-bold italic tracking-wider text-white">SYNCING WITH MATRIX</h2>
-             <span className="text-[10px] font-mono text-system-neon/60 uppercase tracking-[0.3em]">Establishing Secure Link...</span>
+          <div className="flex flex-col gap-3">
+             <h2 className="text-2xl font-display font-black italic tracking-widest text-white uppercase">Syncing with Matrix</h2>
+             <div className="flex gap-1 justify-center">
+                <motion.span animate={{ opacity: [0, 1, 0] }} transition={{ repeat: Infinity, duration: 1.5, delay: 0 }} className="w-2 h-2 rounded-full bg-system-neon" />
+                <motion.span animate={{ opacity: [0, 1, 0] }} transition={{ repeat: Infinity, duration: 1.5, delay: 0.2 }} className="w-2 h-2 rounded-full bg-system-neon" />
+                <motion.span animate={{ opacity: [0, 1, 0] }} transition={{ repeat: Infinity, duration: 1.5, delay: 0.4 }} className="w-2 h-2 rounded-full bg-system-neon" />
+             </div>
+             <p className="text-[10px] font-mono text-system-neon/60 uppercase tracking-[0.4em] mt-2">Neural Link Status: Establishing Secure Tunnel</p>
           </div>
+
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 3 }}
+            className="flex flex-col gap-4 mt-4"
+          >
+            <p className="text-xs text-white/40 leading-relaxed">System latency detected. This could be due to multidimensional interference or authentication delays.</p>
+            <div className="flex flex-col gap-2">
+              <button 
+                onClick={() => window.location.reload()}
+                className="px-8 py-3 bg-white/5 border border-white/10 rounded-xl text-[10px] font-mono uppercase tracking-widest text-white hover:bg-white/10 transition-all font-bold"
+              >
+                FORCED RE-INITIALIZATION
+              </button>
+              {user && (
+                <button 
+                  onClick={() => setLoading(false)}
+                  className="px-8 py-3 border border-system-neon/30 text-system-neon/60 rounded-xl text-[10px] font-mono uppercase tracking-widest hover:bg-system-neon/10 transition-all"
+                >
+                  BYPASS LOADING (DANGEROUS)
+                </button>
+              )}
+            </div>
+          </motion.div>
         </motion.div>
       </div>
     );
@@ -908,6 +1039,11 @@ export default function App() {
   if (showOnboarding) {
     return <Onboarding user={user} onComplete={handleOnboardingComplete} />;
   }
+
+  const activeTitle = stats.activeTitle || (RANK_TITLES[RANK_ORDER[getRankIndexForLevel(stats.level)]] || "ROOKIE");
+  const activeTitleData = AVAILABLE_TITLES.find(t => t.name === activeTitle) || AVAILABLE_TITLES[0];
+  const themeColor = (activeTitleData as any).theme?.color || '#00ff9d';
+  const hasGlow = !!(activeTitleData as any).theme?.glow;
 
   return (
     <div className="min-h-screen bg-system-bg text-slate-100 font-sans selection:bg-system-neon/30 overflow-x-hidden">
@@ -923,6 +1059,16 @@ export default function App() {
           />
         )}
       </AnimatePresence>
+      <AnimatePresence>
+        {activePortalQuest && (
+          <PortalInterface 
+            quest={activePortalQuest} 
+            portalType={activePortalType} 
+            onClose={() => setActivePortalQuest(null)} 
+            onComplete={handlePortalComplete}
+          />
+        )}
+      </AnimatePresence>
 
       {/* HUD HEADER */}
       <header className="sticky top-0 z-40 w-full h-16 border-b border-white/5 bg-system-bg/80 backdrop-blur-md flex items-center justify-between px-6">
@@ -934,7 +1080,7 @@ export default function App() {
             <Menu size={24} />
           </button>
           <div className="flex flex-col">
-            <span className="text-[10px] font-mono text-system-neon tracking-[0.2em] font-bold leading-none">SHADOW LEVELER</span>
+            <span className="text-[10px] font-mono tracking-[0.2em] font-bold leading-none" style={{ color: themeColor }}>SHADOW LEVELER</span>
             <span className="text-lg font-display font-black italic tracking-tighter text-white">SYSTEM v2.5.0</span>
           </div>
         </div>
@@ -945,7 +1091,9 @@ export default function App() {
               <span className="text-sm font-display font-bold text-system-neon neon-text">{stats.streak} DAYS</span>
            </div>
            <div className="w-10 h-10 rounded-full system-border overflow-hidden bg-system-neon/20 flex items-center justify-center group cursor-pointer relative" onClick={handleLogout}>
-              <Shield className="text-system-neon group-hover:hidden" size={24} />
+              <div className="group-hover:hidden">
+                <SystemLogo color={themeColor} size={24} glow={hasGlow} />
+              </div>
               <LogOut className="text-system-danger hidden group-hover:block" size={20} />
            </div>
         </div>
@@ -1133,8 +1281,8 @@ export default function App() {
             className="fixed inset-0 z-[60] bg-black/90 flex items-center justify-center p-6 backdrop-blur-sm"
           >
             <div className="max-w-md w-full bg-system-danger/10 border-2 border-system-danger p-8 rounded-2xl flex flex-col gap-6 text-center">
-               <div className="w-20 h-20 rounded-full bg-system-danger/20 flex items-center justify-center text-system-danger mx-auto animate-pulse">
-                  <Shield size={40} />
+               <div className="w-20 h-20 rounded-full bg-system-danger/20 flex items-center justify-center mx-auto">
+                  <SystemLogo size={40} color="#ff3e3e" />
                </div>
                <div className="flex flex-col gap-1">
                   <span className="text-xs font-mono text-system-danger tracking-[0.4em] font-bold uppercase">Penalty Mission</span>
@@ -1257,7 +1405,9 @@ export default function App() {
                 transition={{ duration: 4, repeat: Infinity }}
                 className="mb-8"
               >
-                <Shield size={80} className="text-system-neon mx-auto filter drop-shadow-[0_0_15px_rgba(var(--system-neon-rgb),0.5)]" />
+                <div className="flex justify-center">
+                  <SystemLogo size={80} color={themeColor} glow={hasGlow} />
+                </div>
               </motion.div>
 
               <h1 className="text-4xl font-display font-black italic tracking-tighter text-white mb-2 uppercase">
@@ -1316,13 +1466,14 @@ export default function App() {
         )}
       </AnimatePresence>
 
-      <div className="fixed bottom-0 left-0 w-full p-4 pointer-events-none flex flex-col items-end gap-2">
+      <div className="fixed top-0 right-0 z-[1000] p-4 pointer-events-none flex flex-col items-end gap-3 w-full max-w-md">
         {notifications.map(n => (
           <SystemMessage 
             key={n.id} 
             message={n.text} 
             type={n.type} 
             onClose={() => removeNotification(n.id)} 
+            onClick={n.onClick}
           />
         ))}
       </div>

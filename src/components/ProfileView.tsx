@@ -10,7 +10,6 @@ import {
   Trophy, 
   Calendar,
   ChevronRight,
-  ShieldCheck,
   Brain,
   Dumbbell,
   BookOpen,
@@ -34,13 +33,17 @@ import {
   CloudMoon,
   Sparkles,
   Sun,
-  Crown
+  Crown,
+  Cpu,
+  Wand2
 } from 'lucide-react';
 import { UserStats, Rank } from '../types';
 import { RANK_ORDER, RANK_TITLES, AVAILABLE_TITLES, DIFFICULTY_COLORS, getCurrencyForTitle } from '../constants';
 
+import SystemLogo from './SystemLogo';
+
 const ICON_MAP: Record<string, any> = {
-  Gem, Moon, CircleDot, Droplets, Ghost, Coins, Flame, CloudMoon, Sparkles, Sun, Crown
+  Gem, Moon, CircleDot, Droplets, Ghost, Coins, Flame, CloudMoon, Sparkles, Sun, Crown, Cpu, Wand2
 };
 
 interface ProfileViewProps {
@@ -134,6 +137,11 @@ export default function ProfileView({ userId, stats, skills, questCount, onUpdat
   const rankTitle = RANK_TITLES[currentRank] || "ROOKIE";
   const activeTitle = stats.activeTitle || rankTitle;
   
+  const activeTitleData = AVAILABLE_TITLES.find(t => t.name === activeTitle) || AVAILABLE_TITLES[0];
+  const titleTheme = activeTitleData.theme || { color: "#00ff9d" };
+  const themeColor = titleTheme.color;
+  const isArchitect = activeTitle === "Grand Architect";
+
   const currency = getCurrencyForTitle(activeTitle);
   const CurrencyIcon = ICON_MAP[currency.icon] || Coins;
   
@@ -165,18 +173,19 @@ export default function ProfileView({ userId, stats, skills, questCount, onUpdat
       {/* Header Profile Card */}
       <section className="relative overflow-hidden bg-white/5 border border-white/10 rounded-3xl p-8">
         <div className="absolute top-0 right-0 p-8 opacity-10">
-          <ShieldCheck size={160} className="text-system-neon" />
+          <SystemLogo size={160} color={themeColor} />
         </div>
         
         <div className="flex flex-col md:flex-row items-center gap-8 relative z-10">
           <div className="relative group">
-            <div className="w-32 h-32 rounded-full system-border overflow-hidden bg-system-neon/20 flex items-center justify-center relative">
+            <div className="w-32 h-32 rounded-full border-2 overflow-hidden bg-white/5 flex items-center justify-center relative shadow-2xl" 
+                 style={{ borderColor: themeColor, boxShadow: activeTitleData.theme?.glow ? `0 0 30px ${themeColor}44` : 'none' }}>
               {isUploading ? (
-                <div className="w-8 h-8 border-4 border-system-neon/20 border-t-system-neon rounded-full animate-spin" />
+                <div className="w-8 h-8 border-4 border-white/20 border-t-white rounded-full animate-spin" style={{ borderTopColor: themeColor }} />
               ) : stats.photoURL ? (
                 <img src={stats.photoURL} alt="Avatar" className="w-full h-full object-cover" />
               ) : (
-                <User size={64} className="text-system-neon" />
+                <User size={64} style={{ color: themeColor }} />
               )}
               
               <label className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
@@ -191,7 +200,8 @@ export default function ProfileView({ userId, stats, skills, questCount, onUpdat
                 />
               </label>
             </div>
-            <div className="absolute -bottom-2 -right-2 bg-system-neon text-black px-3 py-1 rounded-full text-xs font-bold font-display italic">
+            <div className="absolute -bottom-2 -right-2 text-black px-3 py-1 rounded-full text-xs font-bold font-display italic shadow-lg"
+                 style={{ backgroundColor: themeColor }}>
               LVL {stats.level}
             </div>
           </div>
@@ -203,7 +213,7 @@ export default function ProfileView({ userId, stats, skills, questCount, onUpdat
                   type="text"
                   value={editData.displayName}
                   onChange={(e) => setEditData({...editData, displayName: e.target.value})}
-                  className="bg-white/10 border border-white/20 rounded px-2 py-1 text-2xl font-display font-black italic uppercase text-white"
+                  className="bg-white/10 border border-white/20 rounded px-2 py-1 text-2xl font-display font-black italic uppercase text-white outline-none focus:border-white/40"
                 />
               ) : (
                 <div className="flex flex-col">
@@ -211,7 +221,7 @@ export default function ProfileView({ userId, stats, skills, questCount, onUpdat
                     {stats.displayName || "ANONYMOUS UNIT"}
                   </h1>
                   <div className="flex items-center gap-2 mt-1">
-                    <span className="text-[10px] font-mono text-system-neon/70 bg-system-neon/5 px-2 py-0.5 rounded border border-system-neon/10 tracking-widest">
+                    <span className="text-[10px] font-mono bg-white/5 px-2 py-0.5 rounded border border-white/10 tracking-widest text-white/40">
                       HUNTER LICENSE ID: #{userId.substring(0, 8).toUpperCase()}
                     </span>
                   </div>
@@ -223,7 +233,7 @@ export default function ProfileView({ userId, stats, skills, questCount, onUpdat
                 className="p-2 bg-white/5 hover:bg-white/10 rounded-full transition-colors border border-white/10 disabled:opacity-50"
               >
                 {isSaving ? (
-                  <div className="w-4 h-4 border-2 border-system-neon/20 border-t-system-neon rounded-full animate-spin" />
+                  <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" style={{ borderTopColor: themeColor }} />
                 ) : isEditing ? (
                   <Check size={16} className="text-green-400" />
                 ) : (
@@ -232,8 +242,9 @@ export default function ProfileView({ userId, stats, skills, questCount, onUpdat
               </button>
             </div>
             
-            <p className="text-system-neon font-mono text-sm uppercase tracking-widest mb-4 flex items-center justify-center md:justify-start gap-2">
-              <Trophy size={14} />
+            <p className="font-mono text-sm uppercase tracking-widest mb-4 flex items-center justify-center md:justify-start gap-2 font-black"
+               style={{ color: themeColor, filter: activeTitleData.theme?.glow ? `drop-shadow(0 0 10px ${themeColor})` : 'none' }}>
+              {isArchitect ? <Cpu size={14} className="animate-spin-slow" /> : <Trophy size={14} />}
               {activeTitle}
             </p>
             
@@ -442,14 +453,14 @@ export default function ProfileView({ userId, stats, skills, questCount, onUpdat
                 <div className="bg-white/5 border border-white/10 rounded-2xl p-6 divide-y divide-white/5">
                     {(stats.titles || []).map((title, i) => {
                       const titleInfo = AVAILABLE_TITLES.find(t => t.name === title);
-                      const diffColors = titleInfo ? (DIFFICULTY_COLORS[titleInfo.difficulty] || "text-white opacity-60 border-white/10") : "text-white opacity-60 border-white/10";
+                      const themeColor = titleInfo?.theme?.color || "#ffffff";
                       
                       return (
                         <div key={i} className="py-4 flex items-center justify-between group">
                           <div className="flex items-center gap-3">
-                              <div className={`w-2 h-2 rounded-full ${diffColors.split(' ')[0].replace('text-', 'bg-')}`} />
+                              <div className={`w-2 h-2 rounded-full`} style={{ backgroundColor: themeColor, boxShadow: `0 0 10px ${themeColor}` }} />
                               <div className="flex flex-col">
-                                <span className={`text-sm font-display font-bold uppercase tracking-tight ${diffColors.split(' ')[0]}`}>
+                                <span className={`text-sm font-display font-bold uppercase tracking-tight`} style={{ color: themeColor }}>
                                   {title}
                                 </span>
                                 <span className="text-[8px] font-mono text-white/20 uppercase tracking-widest">
@@ -458,7 +469,7 @@ export default function ProfileView({ userId, stats, skills, questCount, onUpdat
                               </div>
                           </div>
                           {stats.activeTitle === title && (
-                              <span className="text-[9px] font-mono px-1.5 py-0.5 rounded border border-system-neon/30 text-system-neon uppercase">Equipped</span>
+                              <span className="text-[9px] font-mono px-1.5 py-0.5 rounded border border-white/10 text-white/50 uppercase" style={{ borderColor: `${themeColor}44`, color: themeColor }}>Equipped</span>
                           )}
                         </div>
                       );

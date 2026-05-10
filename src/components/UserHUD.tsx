@@ -1,8 +1,8 @@
 import React from "react";
 import { RANK_ORDER, RANK_TITLES, AVAILABLE_TITLES, getCurrencyForTitle } from "../constants";
 import { motion } from "motion/react";
+import SystemLogo from "./SystemLogo";
 import { 
-  Shield, 
   Zap, 
   TrendingUp, 
   Award, 
@@ -16,11 +16,13 @@ import {
   CloudMoon, 
   Sparkles, 
   Sun, 
-  Crown 
+  Crown,
+  Cpu,
+  Wand2
 } from "lucide-react";
 
 const ICON_MAP: Record<string, any> = {
-  Gem, Moon, CircleDot, Droplets, Ghost, Coins, Flame, CloudMoon, Sparkles, Sun, Crown
+  Gem, Moon, CircleDot, Droplets, Ghost, Coins, Flame, CloudMoon, Sparkles, Sun, Crown, Cpu, Wand2
 };
 
 interface UserHUDProps {
@@ -47,24 +49,55 @@ export default function UserHUD({ stats, rankIndex, userId, questCount = 0, onOp
   const currency = getCurrencyForTitle(activeTitle);
   const CurrencyIcon = ICON_MAP[currency.icon] || Coins;
 
+  const isArchitect = activeTitle === "Grand Architect";
+  const titleTheme = (activeTitleData as any).theme || { color: "#00ff9d" };
+  const themeColor = titleTheme.color;
+  const hasGlow = !!titleTheme.glow;
+
   return (
-    <div className="flex flex-col gap-6 p-6 system-border bg-system-card/50 backdrop-blur-md rounded-xl relative overflow-hidden group shadow-2xl transition-all duration-700" 
-         style={{ borderColor: `rgba(var(--system-neon-rgb), 0.2)`, boxShadow: `0 0 30px rgba(var(--system-neon-rgb), 0.15)` }}>
+    <div className={`flex flex-col gap-6 p-6 system-border backdrop-blur-md rounded-xl relative overflow-hidden group shadow-2xl transition-all duration-700 ${hasGlow ? 'bg-black/60 ring-2' : 'bg-system-card/50'}`} 
+         style={{ 
+            borderColor: hasGlow ? themeColor : `rgba(var(--system-neon-rgb), 0.2)`, 
+            boxShadow: hasGlow ? `0 0 70px ${themeColor}44, inset 0 0 30px ${themeColor}22` : `0 0 30px rgba(var(--system-neon-rgb), 0.15)`,
+            ringColor: hasGlow ? `${themeColor}44` : 'transparent'
+         }}>
+      
+      {hasGlow && (
+        <>
+          <motion.div 
+            animate={{ x: ['-200%', '200%'] }}
+            transition={{ repeat: Infinity, duration: 3, ease: "linear" }}
+            className="absolute inset-0 z-0 pointer-events-none w-1/3 h-full skew-x-12 opacity-20 bg-gradient-to-r from-transparent via-white to-transparent"
+          />
+          <motion.div 
+            animate={{ opacity: [0, 0.4, 0] }}
+            transition={{ repeat: Infinity, duration: 2 }}
+            className={`absolute inset-0 z-0 pointer-events-none`}
+            style={{ backgroundColor: `${themeColor}22` }}
+          />
+        </>
+      )}
+
       {/* Background Decor */}
-      <div className="absolute -top-10 -right-10 w-40 h-40 rounded-full blur-3xl animate-pulse opacity-40 bg-system-neon" />
-      <div className="absolute top-0 left-0 w-full h-[1px] shadow-[0_0_10px_rgba(var(--system-neon-rgb),0.5)]" 
-           style={{ background: `linear-gradient(90deg, transparent, var(--color-system-neon), transparent)` }} />
+      <div className={`absolute -top-10 -right-10 w-40 h-40 rounded-full blur-3xl animate-pulse opacity-40`} 
+           style={{ backgroundColor: themeColor, boxShadow: hasGlow ? `0 0 50px ${themeColor}` : 'none' }} />
+
+      {hasGlow && (
+        <div className="absolute inset-0 pointer-events-none opacity-20 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] mix-blend-overlay" />
+      )}
+      <div className="absolute top-0 left-0 w-full h-[1px]" 
+           style={{ background: `linear-gradient(90deg, transparent, ${themeColor}, transparent)` }} />
       
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 relative z-10">
         <div className="flex flex-col">
           <div className="flex items-center gap-2">
-            <span className="w-1.5 h-1.5 rounded-full bg-system-neon" />
-            <h2 className="text-[10px] font-mono text-white/40 uppercase tracking-[0.4em]">
+            <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ backgroundColor: themeColor }} />
+            <h2 className={`text-[10px] font-mono uppercase tracking-[0.4em] font-black`} style={{ color: `${themeColor}cc` }}>
               {stats.displayName || "GUEST_HUNTER"}
             </h2>
           </div>
-          <h1 className="text-5xl font-display font-black italic tracking-tighter mt-1 leading-none">
-            LVL <span className="text-system-neon">{level}</span>
+          <h1 className="text-5xl font-display font-black italic tracking-tighter mt-1 leading-none uppercase">
+            LVL <span style={{ color: themeColor, filter: activeTitleData.theme?.glow ? `drop-shadow(0 0 10px ${themeColor})` : 'none' }}>{level}</span>
           </h1>
         </div>
         
@@ -74,13 +107,18 @@ export default function UserHUD({ stats, rankIndex, userId, questCount = 0, onOp
                 onClick={onOpenTitles}
                 className="flex items-center gap-2 mb-1 group/title hover:brightness-125 transition-all active:scale-95"
              >
-               <span className="w-1 h-1 rounded-full animate-pulse bg-system-neon shadow-[0_0_8px_rgba(var(--system-neon-rgb),0.5)]" />
-               <span className="text-[10px] font-mono uppercase tracking-[0.3em] font-bold text-system-neon group-hover/title:drop-shadow-[0_0_5px_rgba(var(--system-neon-rgb),0.8)] transition-all">
+               <span className={`w-1 h-1 rounded-full animate-pulse`} 
+                     style={{ 
+                       backgroundColor: themeColor, 
+                       boxShadow: `0 0 8px ${themeColor}` 
+                     }} />
+               <span className={`text-[10px] font-mono uppercase tracking-[0.3em] font-bold`} style={{ color: themeColor }}>
                  {activeTitle}
                </span>
-               <Award size={12} className="group-hover/title:scale-110 group-hover/title:rotate-12 transition-transform text-system-neon" />
+               {isArchitect ? <Cpu size={12} style={{ color: themeColor }} className="animate-spin-slow" /> : <Award size={12} style={{ color: themeColor }} />}
              </button>
-             <div className="text-7xl font-display font-black italic group-hover:scale-110 transition-all duration-500 leading-none tracking-tighter text-system-neon neon-text">
+             <div className={`text-7xl font-display font-black italic group-hover:scale-110 transition-all duration-500 leading-none tracking-tighter`}
+                  style={{ color: themeColor, filter: `drop-shadow(0 0 20px ${themeColor}99)` }}>
                 {currentRank}
              </div>
           </div>

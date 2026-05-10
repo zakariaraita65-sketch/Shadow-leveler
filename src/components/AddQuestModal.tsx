@@ -34,7 +34,7 @@ export default function AddQuestModal({ onClose, onAdd }: AddQuestModalProps) {
       title: title.trim(),
       type,
       category,
-      exp: type === "daily" ? 150 : 500,
+      expReward: 900,
       dueDate: new Date().toISOString(),
       duration: durationInMinutes,
       status: "pending"
